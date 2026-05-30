@@ -46,11 +46,23 @@ export default function Home() {
       if (activeCategory !== 'all') params.append('category', activeCategory);
       if (selectedLocation && selectedLocation !== 'Ташкент, УЗ' && selectedLocation !== 'Все регионы') params.append('location', selectedLocation);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5005/api";
-      const res = await fetch(`${apiUrl}/listings?${params.toString()}`);
-      if (!res.ok) throw new Error('Backend not responding');
-      const data = await res.json();
-      setProperties(data);
+            try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5005/api";
+        const res = await fetch(`${apiUrl}/listings?${params.toString()}`, { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            setProperties(data);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("API unavailable, falling back to mock data");
+      }
+      
+      // Fallback to local mock data
+      const { properties: mockData } = await import("@/lib/mock");
+      setProperties(mockData);
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
     } finally {
