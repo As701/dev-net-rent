@@ -10,7 +10,22 @@ import random
 import string
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+origins = [
+    "https://dacha-go.uz",
+    "https://www.dacha-go.uz",
+    "https://dev-net-rent.vercel.app",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'database.sqlite')
 
