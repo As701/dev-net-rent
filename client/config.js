@@ -1,5 +1,5 @@
 window.DachaGoConfig = {
-    apiUrl: 'https://major-lines-write.loca.lt/api',
+    apiUrl: 'https://dev-net-rent.onrender.com/api',
     colors: {
         primary: '#2599C8',
         background: '#F7F9FC',

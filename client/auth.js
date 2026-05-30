@@ -25,7 +25,7 @@ function switchTab(tab) {
 
 document.getElementById('auth-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api';
+    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api';
     const identifier = document.getElementById('auth-identifier').value;
     const password = document.getElementById('auth-password').value;
     const name = document.getElementById('auth-name').value;
@@ -59,7 +59,7 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
 
 // Mock Social Auth
 async function socialAuth(provider) {
-    const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api';
+    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api';
     const mockUser = {
         google: { email_or_phone: 'user@gmail.com', name: 'Google User', provider: 'google' },
         apple: { email_or_phone: 'user@apple.com', name: 'Apple User', provider: 'apple' }
