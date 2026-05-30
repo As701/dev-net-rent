@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Search, MoreVertical, MessageCircle, ChevronLeft, Home, MapPin, User } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -8,10 +8,10 @@ import { useRouter } from 'next/navigation';
 const chats = [
   {
     id: 1,
-    name: "Асилбек Р.",
+    name: "Асылбек А.",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Asilbek",
     lastMessage: "Is the dacha available for this weekend?",
-    time: "2м назад",
+    time: "2ч назад",
     unread: true,
   },
   {
@@ -46,7 +46,7 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-soft-gray pb-24">
       {/* Header */}
-      <header className="bg-white px-6 pt-12 pb-6 rounded-b-3xl shadow-sm">
+      <header className="bg-white px-6 pt-12 pb-6 rounded-b-3xl shadow-sm">    
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
              <button onClick={() => router.push('/')} className="p-2 hover:bg-soft-gray rounded-full transition-colors">
@@ -62,9 +62,9 @@ export default function MessagesPage() {
         {/* Search */}
         <div className="flex items-center gap-3 bg-soft-gray px-4 py-3 rounded-2xl border border-transparent focus-within:border-brand-blue focus-within:bg-white transition-all">
           <Search size={20} className="text-gray-400" />
-          <input 
-            type="text" 
-            placeholder="Поиск чатов..." 
+          <input
+            type="text"
+            placeholder="Поиск чатов..."
             className="bg-transparent outline-none w-full text-sm text-gray-700"
           />
         </div>
@@ -78,7 +78,7 @@ export default function MessagesPage() {
               key={chat.id}
               href={`/messages/${chat.id}`}
               className={`p-4 flex items-center gap-4 hover:bg-soft-gray transition-colors cursor-pointer block ${
-                index !== chats.length - 1 ? 'border-b border-gray-50' : ''
+                index !== chats.length - 1 ? 'border-b border-gray-50' : ''    
               }`}
             >
               <div className="relative">
@@ -89,7 +89,7 @@ export default function MessagesPage() {
               </div>
 
               <div className="flex-1">
-                <div className="flex justify-between items-center mb-1">
+                <div className="flex justify-between items-center mb-1">       
                   <h4 className="font-bold text-gray-900 text-sm">{chat.name}</h4>
                   <span className="text-[10px] text-gray-400 font-medium">{chat.time}</span>
                 </div>
@@ -109,11 +109,9 @@ export default function MessagesPage() {
             <MessageCircle size={40} />
           </div>
           <h3 className="font-bold text-gray-900 mb-2">Нет сообщений</h3>
-          <p className="text-sm text-gray-400">Начните диалог с владельцем объекта, чтобы увидеть его здесь.</p>
+          <p className="text-sm text-gray-400">Начните диалог с владельцем объявления, чтобы увидеть его здесь.</p>
         </div>
       )}
-
-      </div>
     </div>
   );
 }

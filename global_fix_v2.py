@@ -2,7 +2,7 @@
 import re
 
 def fix_mojibake(text):
-    # This pattern matches typical mojibake sequences found in the project (╨а╤Ю etc.)
+    # This pattern matches typical mojibake sequences found in the project (Р╤Ю etc.)
     # These are often CP437 or CP850 interpretations of UTF-8 bytes.
     # We will try to reverse the most common one: UTF-8 interpreted as CP437
     try:
@@ -12,7 +12,7 @@ def fix_mojibake(text):
         def replacer(match):
             s = match.group(0)
             try:
-                # ╨а = 0xD0 0xB0 in UTF-8
+                # Р = 0xD0 0xB0 in UTF-8
                 # In CP437: ╨ is 0xD0, а is 0xB0
                 return s.encode('cp437').decode('utf-8')
             except:
