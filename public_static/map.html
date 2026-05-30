@@ -91,7 +91,7 @@
             var myMap = new ymaps.Map("map", { center: [41.311081, 69.240562], zoom: 12, controls: [] });
             const card = document.getElementById('preview-card');
 
-            fetch('http://localhost:5005/api/listings')
+            fetch(`${window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api'}/listings` )
                 .then(res => res.json())
                 .then(listings => {
                     listings.forEach(item => {

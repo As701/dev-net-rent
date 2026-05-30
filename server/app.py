@@ -11,12 +11,7 @@ import string
 
 app = FastAPI()
 
-origins = [
-    "https://dacha-go.uz",
-    "https://www.dacha-go.uz",
-    "https://dev-net-rent.vercel.app",
-    "http://localhost:3000",
-]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
