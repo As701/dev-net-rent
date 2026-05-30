@@ -5,3 +5,5 @@ build/
 *.exe
 *.zip
 *.rar
+.env.local
+.next/
