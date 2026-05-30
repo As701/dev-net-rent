@@ -3,7 +3,7 @@
 import { 
   Bell, MapPin, Search, SlidersHorizontal, Heart, 
   MessageCircle, User, Home as HomeIcon, Warehouse, 
-  Castle, Trees, LayoutGrid, Plus, X, ChevronDown
+  Castle, Trees, LayoutGrid, Plus, X, ChevronDown, AlertCircle
 } from 'lucide-react';
 import PropertyCard from '../components/PropertyCard';
 import LocationSelector from '../components/LocationSelector';
@@ -46,7 +46,8 @@ export default function Home() {
       if (activeCategory !== 'all') params.append('category', activeCategory);
       if (selectedLocation && selectedLocation !== 'Ташкент, УЗ' && selectedLocation !== 'Все регионы') params.append('location', selectedLocation);
 
-      const res = await fetch(`http://localhost:5005/api/listings?${params.toString()}`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5005/api";
+      const res = await fetch(`${apiUrl}/listings?${params.toString()}`);
       if (!res.ok) throw new Error('Backend not responding');
       const data = await res.json();
       setProperties(data);

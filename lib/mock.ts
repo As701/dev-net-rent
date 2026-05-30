@@ -1,8 +1,8 @@
 export const categories = [
-  { id: 'all', name: 'Все', icon: 'Home' },
-  { id: 'cottages', name: 'Котеджы', icon: 'Warehouse' },
-  { id: 'villas', name: 'Виллы', icon: 'Palace' },
-  { id: 'dachas', name: 'Дачи', icon: 'Trees' },
+  { id: "all", name: "Все", icon: "Home" },
+  { id: "cottages", name: "Коттеджи", icon: "Warehouse" },
+  { id: "villas", name: "Виллы", icon: "Castle" },
+  { id: "dachas", name: "Дачи", icon: "Trees" },
 ];
 
 export const properties = [
@@ -16,11 +16,11 @@ export const properties = [
     beds: 3,
     baths: 2,
     rating: 4.8,
-    category: 'dachas',
+    category: "dachas",
     lat: 41.5173,
     lng: 70.0210,
     owner: {
-      name: "Асилбек Р.",
+      name: "Асылбек А.",
       avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Asilbek",
       isVerified: true,
       phone: "+998 90 123 45 67"
@@ -28,15 +28,15 @@ export const properties = [
   },
   {
     id: 2,
-    title: "Современная Вилла с Бассейном",
-    location: "Чарвак, Ташкентская обл.",
+    title: "Современная Вилла с бассейном",
+    location: "Завади, Ташкентская обл.",
     price: 35000000,
     priceUnit: "месяц",
     image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=400",
     beds: 5,
     baths: 4,
     rating: 4.9,
-    category: 'villas',
+    category: "villas",
     lat: 41.6212,
     lng: 70.0076,
     owner: {
@@ -48,19 +48,19 @@ export const properties = [
   },
   {
     id: 3,
-    title: "Лесная Хижина в Замине",
-    location: "Замин, Джизак",
+    title: "Лесная Резиденция в Заамине",
+    location: "Заамин, Джизак",
     price: 1200000,
     priceUnit: "день",
     image: "https://images.unsplash.com/photo-1449156001437-3a16b1adbb70?auto=format&fit=crop&q=80&w=400",
     beds: 2,
     baths: 1,
     rating: 4.7,
-    category: 'cottages',
+    category: "cottages",
     lat: 39.9575,
     lng: 68.4385,
     owner: {
-      name: "Шерзод К.",
+      name: "Шерзод Ш.",
       avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sherzod",
       isVerified: true,
       phone: "+998 93 321 00 11"
@@ -68,7 +68,7 @@ export const properties = [
   },
   {
     id: 4,
-    title: "Традиционный Самаркандский Дом",
+    title: "Просторный Самаркандский Дом",
     location: "Самарканд",
     price: 2000000,
     priceUnit: "день",
@@ -76,11 +76,11 @@ export const properties = [
     beds: 4,
     baths: 2,
     rating: 4.9,
-    category: 'cottages',
+    category: "cottages",
     lat: 39.6270,
     lng: 66.9750,
     owner: {
-      name: "Гульнара А.",
+      name: "Гульнара Т.",
       avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Gulnara",
       isVerified: true,
       phone: "+998 94 444 55 66"
