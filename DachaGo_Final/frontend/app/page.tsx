@@ -3,7 +3,7 @@
 import { 
   Bell, MapPin, Search, SlidersHorizontal, Heart, 
   MessageCircle, User, Home as HomeIcon, Warehouse, 
-  Castle, Trees, LayoutGrid, Plus, X, ChevronDown
+  Castle, Trees, LayoutGrid, Plus, X, ChevronDown, AlertCircle
 } from 'lucide-react';
 import PropertyCard from '../components/PropertyCard';
 import LocationSelector from '../components/LocationSelector';
