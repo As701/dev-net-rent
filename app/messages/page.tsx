@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { ArrowLeft, Search, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -20,11 +20,10 @@ export default function MessagesPage() {
 
     const fetchChats = async () => {
       try {
-        const userId = 'admin-id-fixed'; // В реальном приложении session.user.id
+        const userId = 'admin-id-fixed'; 
         const res = await fetch(`http://localhost:5005/api/messages/${userId}`);
         if (res.ok) {
           const data = await res.json();
-          // Группировка сообщений по listing_id для списка диалогов
           const uniqueChats: any = {};
           data.forEach((m: any) => {
             if (!uniqueChats[m.listing_id]) {
@@ -41,12 +40,12 @@ export default function MessagesPage() {
     };
 
     fetchChats();
-  }, [session]);
+  }, [session, router]);
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] pb-24">
       <header className="bg-white px-6 pt-16 pb-6 rounded-b-[40px] shadow-sm flex items-center justify-between sticky top-0 z-40">
-        <h1 className="text-2xl font-black text-gray-900">Чаты</h1>
+        <h1 className="text-2xl font-black text-gray-900">Чаты</h1>        
         <button className="p-3 bg-soft-gray rounded-2xl">
           <Search size={20} className="text-gray-700" />
         </button>
@@ -62,14 +61,14 @@ export default function MessagesPage() {
             <motion.div
               key={chat.id}
               whileTap={{ scale: 0.98 }}
-              onClick={() => router.push(`/messages/${chat.listing_id}?ownerId=${chat.sender_id === 'admin-id-fixed' ? chat.receiver_id : chat.sender_id}`)}
+              onClick={() => router.push(`/messages/${chat.listing_id}?ownerId=${chat.sender_id === 'admin-id-fixed' ? chat.receiver_id : chat.sender_id}`)}  
               className="bg-white p-4 rounded-3xl shadow-soft border border-gray-50 flex items-center gap-4 cursor-pointer"
             >
               <div className="relative">
-                <img 
-                  src={chat.listing_image || 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=100'} 
-                  className="w-16 h-16 rounded-2xl object-cover" 
-                  alt="Listing" 
+                <img
+                  src={chat.listing_image || 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=100'}
+                  className="w-16 h-16 rounded-2xl object-cover"
+                  alt="Listing"
                 />
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-brand-blue rounded-full border-2 border-white flex items-center justify-center text-white">
                   <MessageCircle size={12} />
