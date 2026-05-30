@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта дач - DachaGo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+    <style>
+        :root { --brand-blue: #2599C8; --soft-gray: #F7F9FC; --text-dark: #1A1D1E; --text-light: #9BA5B7; --white: #FFFFFF; }
+        
+        /* КРИТИЧЕСКИЙ СТИЛЬ ДЛЯ ОДИНАКОВОГО РАЗМЕРА */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; overflow: hidden; }
+        #map { width: 100%; height: 100%; }
+        
+        .top-controls { position: absolute; top: 50px; left: 20px; right: 20px; z-index: 100; display: flex; gap: 10px; }
+        .back-btn { background: white; width: 50px; height: 50px; border-radius: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); cursor: pointer; text-decoration: none; color: var(--text-dark); transition: 0.3s; }
+        .back-btn:active { transform: scale(0.9); }
+        .search-bar { flex: 1; background: white; border-radius: 18px; padding: 0 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .search-bar input { border: none; outline: none; width: 100%; padding: 15px 0; font-weight: 700; font-family: inherit; }
+
+        /* PROFESSIONAL PREVIEW CARD */
+        #preview-card { position: fixed; bottom: -350px; left: 20px; right: 20px; background: white; border-radius: 30px; box-shadow: 0 -10px 40px rgba(0,0,0,0.1); z-index: 1000; padding: 15px; transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; gap: 15px; }
+        #preview-card.active { bottom: 120px; }
+        .preview-img { width: 110px; height: 110px; border-radius: 20px; object-fit: cover; }
+        .preview-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .preview-title { font-weight: 900; font-size: 16px; color: var(--text-dark); margin-bottom: 4px; }
+        .preview-loc { color: var(--text-light); font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+        .preview-price { margin-top: 10px; color: var(--brand-blue); font-weight: 900; font-size: 18px; }
+        .preview-btn { background: var(--brand-blue); color: white; padding: 10px; border-radius: 14px; text-align: center; font-size: 12px; font-weight: 800; margin-top: 10px; cursor: pointer; }
+
+        /* BOTTOM NAV - MASTER STANDARD 74x74 */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 15px 24px 35px; display: flex; justify-content: space-between; align-items: center; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.05); z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #D1D8E0; cursor: pointer; text-decoration: none; transition: 0.3s; }
+        .nav-item.active { color: var(--brand-blue); }
+        .nav-item i { font-size: 22px; }
+        .nav-item span { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .nav-create { position: relative; margin-top: -65px; }
+        .create-btn { background: var(--brand-blue); width: 74px; height: 74px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 26px; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.4); border: 6px solid var(--white); cursor: pointer; transition: 0.3s; }
+        .create-btn:active { transform: scale(0.9); }
+    </style>
+</head>
+<body>
+    <div class="top-controls">
+        <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
+        <div class="search-bar"><i class="fas fa-search" style="color: var(--brand-blue);"></i><input type="text" id="suggest" placeholder="Поиск локации..."></div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- PREVIEW CARD -->
+    <div id="preview-card">
+        <img id="prev-img" src="" class="preview-img">
+        <div class="preview-info">
+            <div id="prev-title" class="preview-title">Загрузка...</div>
+            <div class="preview-loc"><i class="fas fa-map-marker-alt"></i> <span id="prev-loc">...</span></div>
+            <div id="prev-price" class="preview-price">0 сум</div>
+            <div id="prev-go-btn" class="preview-btn">Посмотреть детали</div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="map.html" class="nav-item active">
+            <i class="fas fa-map-marked-alt"></i>
+            <span>Карта</span>
+        </a>
+        <a href="index.html" class="nav-item">
+            <i class="fas fa-th-large"></i>
+            <span>Главная</span>
+        </a>
+        <div class="nav-create">
+            <a href="create.html" class="create-btn"><i class="fas fa-plus"></i></a>
+        </div>
+        <a href="messages.html" class="nav-item">
+            <i class="fas fa-comment-dots"></i>
+            <span>Чаты</span>
+        </a>
+        <a href="profile.html" class="nav-item">
+            <i class="fas fa-user-circle"></i>
+            <span>Профиль</span>
+        </a>
+    </nav>
+
+    <script>
+        ymaps.ready(init);
+        function init() {
+            var myMap = new ymaps.Map("map", { center: [41.311081, 69.240562], zoom: 12, controls: [] });
+            const card = document.getElementById('preview-card');
+
+            fetch('http://localhost:5005/api/listings')
+                .then(res => res.json())
+                .then(listings => {
+                    listings.forEach(item => {
+                        if (item.lat && item.lng) {
+                            const placemark = new ymaps.Placemark([item.lat, item.lng], {}, {
+                                preset: 'islands#blueStretchyIcon', iconColor: '#2599C8'
+                            });
+                            
+                            placemark.events.add('click', () => {
+                                document.getElementById('prev-img').src = item.image;
+                                document.getElementById('prev-title').innerText = item.title;
+                                document.getElementById('prev-loc').innerText = item.location;
+                                document.getElementById('prev-price').innerText = (item.price || 0).toLocaleString() + ' сум';
+                                document.getElementById('prev-go-btn').onclick = () => window.location.href = `details.html?id=${item.id}`;
+                                card.classList.add('active');
+                            });
+
+                            myMap.geoObjects.add(placemark);
+                        }
+                    });
+                });
+
+            myMap.events.add('click', () => card.classList.remove('active'));
+            new ymaps.SuggestView('suggest');
+        }
+    </script>
+</body>
+</html>

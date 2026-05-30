@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Избранное - DachaGo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-blue: #2599C8;
+            --soft-gray: #F7F9FC;
+            --text-dark: #1A1D1E;
+            --text-light: #9BA5B7;
+            --white: #FFFFFF;
+            --border-color: #F0F3F6;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--soft-gray); margin: 0; padding-bottom: 110px; color: var(--text-dark); -webkit-font-smoothing: antialiased; }
+
+        .page-header { background: var(--white); padding: 50px 24px 25px; border-radius: 0 0 35px 35px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); position: sticky; top: 0; z-index: 1000; display: flex; align-items: center; gap: 15px; }
+        .back-btn { width: 45px; height: 45px; background: var(--soft-gray); border-radius: 15px; display: flex; align-items: center; justify-content: center; color: var(--text-dark); text-decoration: none; font-size: 18px; }
+        .page-title { font-weight: 900; font-size: 20px; }
+
+        .content { padding: 25px 24px; }
+
+        /* LISTINGS */
+        .property-card { background: var(--white); border-radius: 35px; overflow: hidden; margin-bottom: 25px; box-shadow: 0 15px 45px rgba(0,0,0,0.04); border: 1px solid var(--border-color); position: relative; }
+        .card-image-wrap { position: relative; height: 220px; }
+        .card-img { width: 100%; height: 100%; object-fit: cover; }
+        .fav-btn { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--brand-blue); border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); cursor: pointer; z-index: 10; }
+        .card-info { padding: 20px; }
+        .card-title { font-size: 18px; font-weight: 800; margin: 0 0 8px; color: var(--text-dark); }
+        .card-loc { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-light); font-weight: 700; margin-bottom: 15px; }
+        .card-bottom { display: flex; justify-content: space-between; align-items: center; }
+        .card-price { font-size: 20px; font-weight: 900; color: var(--brand-blue); }
+        .card-price span { font-size: 11px; color: var(--text-light); }
+
+        .empty-state { text-align: center; padding: 100px 30px; }
+        .empty-state i { font-size: 60px; color: #E2E8F0; margin-bottom: 20px; }
+        .empty-state h3 { font-weight: 900; font-size: 20px; margin-bottom: 10px; }
+        .empty-state p { color: var(--text-light); font-weight: 600; font-size: 14px; line-height: 1.5; }
+
+        /* BOTTOM NAV */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 15px 24px 35px; display: flex; justify-content: space-between; align-items: center; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.05); z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #D1D8E0; cursor: pointer; text-decoration: none; transition: 0.3s; }
+        .nav-item.active { color: var(--brand-blue); }
+        .nav-item i { font-size: 22px; }
+        .nav-item span { font-size: 10px; font-weight: 900; text-transform: uppercase; }
+        .nav-create { position: relative; margin-top: -65px; }
+        .create-btn { background: var(--brand-blue); width: 74px; height: 74px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 26px; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.4); border: 6px solid var(--white); cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <a href="profile.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
+        <div class="page-title">Избранное</div>
+    </header>
+
+    <main class="content" id="favorites-container">
+        <div style="text-align:center; padding:40px;">Загрузка...</div>
+    </main>
+
+    <nav class="bottom-nav">
+        <a href="map.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Карта</span></a>
+        <a href="index.html" class="nav-item"><i class="fas fa-th-large"></i><span>Главная</span></a>
+        <div class="nav-create"><a href="create.html" class="create-btn"><i class="fas fa-plus"></i></a></div>
+        <a href="messages.html" class="nav-item"><i class="fas fa-comment-dots"></i><span>Чаты</span></a>
+        <a href="profile.html" class="nav-item active"><i class="fas fa-user-circle"></i><span>Профиль</span></a>
+    </nav>
+
+    <script src="config.js"></script>
+    <script src="favorites.js"></script>
+</body>
+</html>
