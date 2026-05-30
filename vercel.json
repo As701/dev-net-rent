@@ -1,7 +1,9 @@
-﻿{
+{
   "version": 2,
-  "public": true,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/client/$1" }
+    {
+      "source": "/(.*)",
+      "destination": "/client/$1"
+    }
   ]
 }
