@@ -2,161 +2,215 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>Вход / Регистрация - DachaGo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <title>Вход и Регистрация - DachaGo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-blue: #2599C8;
             --soft-gray: #F7F9FC;
             --text-dark: #1A1D1E;
             --text-light: #9BA5B7;
+            --danger-red: #EA5455;
+            --success-green: #28C76F;
+            --border-color: #F0F3F6;
         }
 
-        /* 1. ИСПРАВЛЕНИЕ ЗУМА: Для мобильных устройств ставим шрифт 16px */
-        @media screen and (max-width: 768px) {
-            input[type="text"],
-            input[type="email"],
-            input[type="tel"],
-            input[type="password"],
-            textarea,
-            select,
-            .form-control {
-                font-size: 16px !important; /* iOS Safari не будет приближать страницу */
-            }
-        }
-
-        /* 2. ИСПРАВЛЕНИЕ КЛАВИАТУРЫ: Делаем главный контейнер гибким */
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-            background-color: white;
+        /* Reset and Base */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: white; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100dvh; 
             color: var(--text-dark);
+            overflow-x: hidden;
         }
 
-        /* Оберточный тег */
-        .auth-container {
+        /* Mobile Fixes for iPhone */
+        input, textarea, select {
+            font-size: 18px !important;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        .auth-container { 
+            padding: 30px 25px; 
+            flex: 1; 
             display: flex;
             flex-direction: column;
-            min-height: 100dvh; /* Динамическая высота с учетом мобильной клавиатуры */
-            overflow-y: auto; /* Позволяет скроллить контент, если клавиатура его поджала */
-            -webkit-overflow-scrolling: touch;
-            padding: 40px 25px;
-            box-sizing: border-box;
-            background: white;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
         }
 
-        /* Центрирует форму, но при клавиатуре даст скролл */
-        #auth-form {
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-            /* justify-content: center; -- Убрано для стабильности на iOS */
-        }
+        .header { margin-bottom: 30px; }
+        .back-btn { width: 45px; height: 45px; background: var(--soft-gray); border-radius: 15px; display: flex; align-items: center; justify-content: center; color: var(--text-dark); text-decoration: none; margin-bottom: 25px; transition: transform 0.2s; }
+        .back-btn:active { transform: scale(0.95); }
 
-        .back-btn {
-            width: 45px;
-            height: 45px;
-            background: var(--soft-gray);
-            border-radius: 15px;
+        h1 { font-weight: 800; font-size: 28px; margin: 0 0 8px 0; }
+        p.subtitle { color: var(--text-light); font-size: 14px; margin: 0; line-height: 1.5; }        
+
+        /* Tabs */
+        .tabs { display: flex; background: var(--soft-gray); padding: 5px; border-radius: 18px; margin-bottom: 30px; position: relative; }
+        .tab { flex: 1; padding: 12px; text-align: center; border-radius: 14px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); color: var(--text-light); position: relative; z-index: 2; }
+        .tab.active { color: var(--primary-blue); background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        /* Form Controls */
+        .form-group { margin-bottom: 20px; position: relative; }
+        .form-group label { display: block; font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .input-wrapper { 
+            background: var(--soft-gray); 
+            border-radius: 18px; 
+            padding: 14px 18px; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .input-wrapper:focus-within { border-color: var(--primary-blue); background: white; }
+        .input-wrapper.error { border-color: var(--danger-red); }
+        .input-wrapper.success { border-color: var(--success-green); }
+
+        .input-wrapper i.field-icon { color: var(--text-light); font-size: 16px; width: 20px; text-align: center; }
+        .input-wrapper input { border: none; background: transparent; outline: none; width: 100%; font-weight: 500; color: var(--text-dark); }
+        .input-wrapper input::placeholder { color: #B9C3D5; }
+
+        .toggle-pass { color: var(--text-light); cursor: pointer; padding: 5px; margin-right: -5px; }
+        .field-status { font-size: 14px; margin-left: auto; }
+        .fa-circle-check { color: var(--success-green); }
+
+        .error-msg { color: var(--danger-red); font-size: 11px; font-weight: 600; margin-top: 6px; padding-left: 5px; min-height: 14px; }
+
+        /* Password Requirements */
+        .pass-requirements { margin-top: 10px; display: none; }
+        .req-item { font-size: 11px; color: var(--text-light); display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+        .req-item i { font-size: 10px; }
+        .req-item.valid { color: var(--success-green); }
+        .req-item.valid i::before { content: "\f00c"; }
+
+        /* Submit Button */
+        .submit-btn { 
+            width: 100%; 
+            background: var(--primary-blue); 
+            color: white; 
+            border: none; 
+            padding: 18px; 
+            border-radius: 20px; 
+            font-weight: 800; 
+            font-size: 16px; 
+            margin-top: 10px; 
+            box-shadow: 0 10px 25px rgba(37, 153, 200, 0.2); 
+            cursor: pointer; 
+            transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--text-dark);
-            text-decoration: none;
-            margin-bottom: 30px;
-            flex-shrink: 0;
+            gap: 10px;
         }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+        .submit-btn:active:not(:disabled) { transform: scale(0.98); }
 
-        h1 { font-weight: 800; font-size: 28px; margin-bottom: 10px; }
-        p.subtitle { color: var(--text-light); font-size: 14px; margin-bottom: 30px; line-height: 1.5; }        
+        .loader { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .tabs { display: flex; background: var(--soft-gray); padding: 5px; border-radius: 18px; margin-bottom: 30px; flex-shrink: 0; }
-        .tab { flex: 1; padding: 12px; text-align: center; border-radius: 14px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s; color: var(--text-light); }
-        .tab.active { background: white; color: var(--primary-blue); box-shadow: 0 4px 10px rgba(0,0,0,0.05); } 
+        .forgot-pass { text-align: center; margin-top: 20px; }
+        .forgot-pass a { color: var(--text-light); font-size: 13px; font-weight: 600; text-decoration: none; }
 
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--text-dark); }
-        .input-wrapper { background: var(--soft-gray); border-radius: 18px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; border: 1px solid #F0F3F6; }
-        .input-wrapper i { color: var(--text-light); font-size: 16px; }
-
-        .input-wrapper input {
-            border: none;
-            background: transparent;
-            outline: none;
-            width: 100%;
-            font-weight: 500;
-            font-size: 16px;
-        }
-
-        .submit-btn {
-            width: 100%;
-            background: var(--primary-blue);
-            color: white;
-            border: none;
-            padding: 18px;
-            border-radius: 20px;
-            font-weight: 800;
-            font-size: 15px;
-            margin-top: 10px;
-            box-shadow: 0 10px 20px rgba(0,102,255,0.15);
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        .divider { display: flex; align-items: center; text-align: center; margin: 30px 0; color: #eee; font-size: 12px; font-weight: 700; text-transform: uppercase; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
+        .divider { display: flex; align-items: center; text-align: center; margin: 30px 0; color: var(--border-color); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1.5px solid var(--border-color); }
         .divider span { padding: 0 15px; color: var(--text-light); }
 
-        .social-btns { display: flex; gap: 15px; margin-bottom: 20px; }
-        .social-btn { flex: 1; border: 1px solid #F0F3F6; border-radius: 18px; padding: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: background 0.2s; }
-        .social-btn:active { background: #fcfcfc; }
+        .social-btns { display: flex; gap: 15px; }
+        .social-btn { flex: 1; border: 2px solid var(--border-color); border-radius: 18px; padding: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s; }
+        .social-btn:active { background: var(--soft-gray); transform: scale(0.95); }
         .social-btn i { font-size: 20px; }
         .fa-google { color: #DB4437; }
         .fa-apple { color: #000; }
+
+        /* Animation Classes */
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
     <div class="auth-container">
-        <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
-
-        <h1 id="auth-title">С возвращением!</h1>
-        <p class="subtitle" id="auth-subtitle">Войдите в аккаунт, чтобы продолжить поиск вашей идеальной дачи.</p>
-
-        <div class="tabs">
-            <div class="tab active" id="tab-login" onclick="switchTab('login')">Вход</div>
-            <div class="tab" id="tab-register" onclick="switchTab('register')">Регистрация</div>
+        <div class="header">
+            <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
+            <h1 id="auth-title">С возвращением!</h1>
+            <p class="subtitle" id="auth-subtitle">Войдите в аккаунт, чтобы продолжить поиск вашей идеальной дачи.</p>
         </div>
 
-        <form id="auth-form" autocomplete="off">
-            <div class="form-group" id="name-group" style="display: none;">
-                <label>ВАШЕ ИМЯ</label>
+        <div class="tabs">
+            <div class="tab active" data-tab="login">Вход</div>
+            <div class="tab" data-tab="register">Регистрация</div>
+        </div>
+
+        <form id="auth-form" autocomplete="off" novalidate>
+            <!-- Name Field (Registration Only) -->
+            <div class="form-group" id="group-name" style="display: none;">
+                <label>Ваше имя</label>
                 <div class="input-wrapper">
-                    <i class="far fa-user"></i>
-                    <input type="text" id="auth-name" placeholder="Как вас зовут?">
+                    <i class="far fa-user field-icon"></i>
+                    <input type="text" id="input-name" placeholder="Введите имя" maxlength="50">
+                    <div class="field-status"></div>
                 </div>
+                <div class="error-msg" id="error-name"></div>
             </div>
 
+            <!-- Identity Field (Email or Phone) -->
             <div class="form-group">
-                <label>EMAIL ИЛИ ТЕЛЕФОН</label>
+                <label>Email или телефон</label>
                 <div class="input-wrapper">
-                    <i class="far fa-envelope"></i>
-                    <input type="text" id="auth-identifier" placeholder="example@mail.com или +998..." required>
+                    <i class="far fa-envelope field-icon" id="identity-icon"></i>
+                    <input type="text" id="input-identity" placeholder="example@mail.com или +998..." required>
+                    <div class="field-status"></div>
                 </div>
+                <div class="error-msg" id="error-identity"></div>
             </div>
 
+            <!-- Password Field -->
             <div class="form-group">
-                <label>ПАРОЛЬ</label>
+                <label>Пароль</label>
                 <div class="input-wrapper">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="auth-password" placeholder="••••••••" required>
+                    <i class="fas fa-lock field-icon"></i>
+                    <input type="password" id="input-password" placeholder="••••••••" required>
+                    <i class="far fa-eye toggle-pass"></i>
+                </div>
+                <div class="error-msg" id="error-password"></div>
+                
+                <!-- Requirements (Registration Only) -->
+                <div class="pass-requirements" id="pass-reqs">
+                    <div class="req-item" data-req="length"><i class="fas fa-circle"></i> Минимум 8 символов</div>
+                    <div class="req-item" data-req="case"><i class="fas fa-circle"></i> Заглавная и строчная буквы</div>
+                    <div class="req-item" data-req="digit"><i class="fas fa-circle"></i> Минимум 1 цифра</div>
+                    <div class="req-item" data-req="special"><i class="fas fa-circle"></i> Спецсимвол (!@#$%^&*)</div>
                 </div>
             </div>
 
-            <button type="submit" class="submit-btn" id="submit-btn">Войти</button>
+            <!-- Confirm Password Field (Registration Only) -->
+            <div class="form-group" id="group-confirm" style="display: none;">
+                <label>Подтверждение пароля</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-shield-check field-icon"></i>
+                    <input type="password" id="input-confirm" placeholder="••••••••">
+                    <div class="field-status"></div>
+                </div>
+                <div class="error-msg" id="error-confirm"></div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="btn-submit" disabled>
+                <span class="loader"></span>
+                <span class="btn-text">Войти</span>
+            </button>
+
+            <div class="forgot-pass" id="forgot-link">
+                <a href="#">Забыли пароль?</a>
+            </div>
         </form>
 
         <div class="divider"><span>или продолжить через</span></div>
@@ -171,17 +225,7 @@
         </div>
     </div>
 
-    <script>
-        // Плавно скроллим инпут в зону видимости при фокусе
-        const inputs = document.querySelectorAll('input');
-        inputs.forEach(input => {
-            input.addEventListener('focus', () => {
-                setTimeout(() => {
-                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            });
-        });
-    </script>
+    <!-- Scripts -->
     <script src="config.js"></script>
     <script src="auth.js"></script>
 </body>
