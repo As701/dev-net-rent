@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Вход / Регистрация - DachaGo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -14,48 +14,60 @@
             --text-light: #9BA5B7;
         }
 
-        /* Prevent auto-zoom on iOS */
-        input, textarea, select, .form-control {
-            font-size: 16px !important;
-            -webkit-text-size-adjust: 100%;
+        /* 1. ИСПРАВЛЕНИЕ ЗУМА: Для мобильных устройств ставим шрифт 16px */
+        @media screen and (max-width: 768px) {
+            input[type="text"],
+            input[type="email"],
+            input[type="tel"],
+            input[type="password"],
+            textarea,
+            select,
+            .form-control {
+                font-size: 16px !important; /* iOS Safari не будет приближать страницу */
+            }
         }
 
-        body {
+        /* 2. ИСПРАВЛЕНИЕ КЛАВИАТУРЫ: Делаем главный контейнер гибким */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
             font-family: 'Inter', sans-serif;
             background-color: white;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100dvh;
-            /* Using a more stable height calculation to avoid jumping */
-            height: 100%;
             color: var(--text-dark);
-            overflow-x: hidden;
-            -webkit-tap-highlight-color: transparent;
         }
 
+        /* Оберточный тег */
         .auth-container {
-            padding: 40px 25px;
-            flex: 1;
             display: flex;
             flex-direction: column;
-            /* Removed justify-content: center to prevent the "jump" when keyboard appears */
-            min-height: 100dvh;
+            min-height: 100dvh; /* Динамическая высота с учетом мобильной клавиатуры */
+            overflow-y: auto; /* Позволяет скроллить контент, если клавиатура его поджала */
+            -webkit-overflow-scrolling: touch;
+            padding: 40px 25px;
             box-sizing: border-box;
             background: white;
         }
 
-        .back-btn { 
-            width: 45px; 
-            height: 45px; 
-            background: var(--soft-gray); 
-            border-radius: 15px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            color: var(--text-dark); 
-            text-decoration: none; 
-            margin-bottom: 30px; 
+        /* Центрирует форму, но при клавиатуре даст скролл */
+        #auth-form {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            /* justify-content: center; -- Убрано для стабильности на iOS */
+        }
+
+        .back-btn {
+            width: 45px;
+            height: 45px;
+            background: var(--soft-gray);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dark);
+            text-decoration: none;
+            margin-bottom: 30px;
             flex-shrink: 0;
         }
 
@@ -64,7 +76,7 @@
 
         .tabs { display: flex; background: var(--soft-gray); padding: 5px; border-radius: 18px; margin-bottom: 30px; flex-shrink: 0; }
         .tab { flex: 1; padding: 12px; text-align: center; border-radius: 14px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s; color: var(--text-light); }
-        .tab.active { background: white; color: var(--primary-blue); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }     
+        .tab.active { background: white; color: var(--primary-blue); box-shadow: 0 4px 10px rgba(0,0,0,0.05); } 
 
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--text-dark); }
@@ -80,18 +92,18 @@
             font-size: 16px;
         }
 
-        .submit-btn { 
-            width: 100%; 
-            background: var(--primary-blue); 
-            color: white; 
-            border: none; 
-            padding: 18px; 
-            border-radius: 20px; 
-            font-weight: 800; 
-            font-size: 15px; 
-            margin-top: 10px; 
-            box-shadow: 0 10px 20px rgba(0,102,255,0.15); 
-            cursor: pointer; 
+        .submit-btn {
+            width: 100%;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 15px;
+            margin-top: 10px;
+            box-shadow: 0 10px 20px rgba(0,102,255,0.15);
+            cursor: pointer;
             flex-shrink: 0;
         }
 
@@ -116,7 +128,7 @@
 
         <div class="tabs">
             <div class="tab active" id="tab-login" onclick="switchTab('login')">Вход</div>
-            <div class="tab" id="tab-register" onclick="switchTab('register')">Регистрация</div>     
+            <div class="tab" id="tab-register" onclick="switchTab('register')">Регистрация</div>
         </div>
 
         <form id="auth-form" autocomplete="off">
@@ -140,7 +152,7 @@
                 <label>ПАРОЛЬ</label>
                 <div class="input-wrapper">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="auth-password" placeholder="••••••••" required>  
+                    <input type="password" id="auth-password" placeholder="••••••••" required>
                 </div>
             </div>
 
@@ -159,6 +171,17 @@
         </div>
     </div>
 
+    <script>
+        // Плавно скроллим инпут в зону видимости при фокусе
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                setTimeout(() => {
+                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+        });
+    </script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
 </body>
