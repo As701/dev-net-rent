@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Вход / Регистрация - DachaGo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -13,11 +13,17 @@
             --text-dark: #1A1D1E;
             --text-light: #9BA5B7;
         }
-        
-        /* Force font size 18px for ALL inputs to kill the zoom */
-        input, select, textarea, 
-        input[type="text"], input[type="password"], input[type="email"], input[type="tel"] {
-            font-size: 18px !important;
+
+        /* 
+           Requirement: font-size 16px !important for all inputs.
+           This is the primary fix for the iPhone zoom issue.
+        */
+        input,
+        textarea,
+        select,
+        .form-control,
+        .input-wrapper input {
+            font-size: 16px !important;
             -webkit-text-size-adjust: 100%;
         }
 
@@ -30,11 +36,10 @@
             min-height: 100dvh;
             min-height: calc(var(--vh, 1vh) * 100);
             color: var(--text-dark);
-            /* Prevent bounce but allow scrolling if needed */
             overflow-x: hidden;
             position: relative;
         }
-        
+
         .auth-container {
             padding: 20px;
             flex: 1;
@@ -45,7 +50,7 @@
             min-height: calc(var(--vh, 1vh) * 100);
             box-sizing: border-box;
         }
-        
+
         .back-btn { width: 45px; height: 45px; background: var(--soft-gray); border-radius: 15px; display: flex; align-items: center; justify-content: center; color: var(--text-dark); text-decoration: none; margin-bottom: 30px; }
 
         h1 { font-weight: 800; font-size: 28px; margin-bottom: 10px; }
@@ -60,14 +65,12 @@
         .input-wrapper { background: var(--soft-gray); border-radius: 18px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; border: 1px solid #F0F3F6; }
         .input-wrapper i { color: var(--text-light); font-size: 16px; }
 
-        .input-wrapper input { 
-            border: none; 
-            background: transparent; 
-            outline: none; 
-            width: 100%; 
-            font-weight: 500; 
-            /* Double-check font-size here */
-            font-size: 18px !important;
+        .input-wrapper input {
+            border: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+            font-weight: 500;
         }
 
         .submit-btn { width: 100%; background: var(--primary-blue); color: white; border: none; padding: 18px; border-radius: 20px; font-weight: 800; font-size: 15px; margin-top: 10px; box-shadow: 0 10px 20px rgba(0,102,255,0.15); cursor: pointer; }
@@ -137,7 +140,6 @@
     </div>
 
     <script>
-        // Fix for 100vh on iOS keyboard
         function updateViewportHeight() {
             let vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -145,13 +147,6 @@
         window.addEventListener('resize', updateViewportHeight);
         window.addEventListener('orientationchange', updateViewportHeight);
         updateViewportHeight();
-        
-        // Prevent manual zoom if maximum-scale=1 is ignored
-        document.addEventListener('touchstart', function (event) {
-            if (event.touches.length > 1) {
-                event.preventDefault();
-            }
-        }, { passive: false });
     </script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
