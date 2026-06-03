@@ -2,13 +2,14 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Вход и Регистрация - DachaGo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-blue: #2599C8;
+            --brand-color: #2b96cd;
             --soft-gray: #F7F9FC;
             --text-dark: #1A1D1E;
             --text-light: #9BA5B7;
@@ -17,7 +18,6 @@
             --border-color: #F0F3F6;
         }
 
-        /* Reset and Base */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
             font-family: 'Inter', sans-serif; 
@@ -44,6 +44,7 @@
             max-width: 500px;
             margin: 0 auto;
             width: 100%;
+            transition: all 0.4s ease;
         }
 
         .header { margin-bottom: 30px; }
@@ -53,9 +54,23 @@
         h1 { font-weight: 800; font-size: 28px; margin: 0 0 8px 0; }
         p.subtitle { color: var(--text-light); font-size: 14px; margin: 0; line-height: 1.5; }        
 
+        /* SCREEN TOGGLE */
+        .screen { display: none; }
+        .screen.active { display: block; animation: screenIn 0.4s ease-out; }
+        @keyframes screenIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .screen.exit { animation: screenOut 0.4s ease-in forwards; }
+        @keyframes screenOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+
         /* Tabs */
-        .tabs { display: flex; background: var(--soft-gray); padding: 5px; border-radius: 18px; margin-bottom: 30px; position: relative; }
-        .tab { flex: 1; padding: 12px; text-align: center; border-radius: 14px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); color: var(--text-light); position: relative; z-index: 2; }
+        .tabs { display: flex; background: var(--soft-gray); padding: 5px; border-radius: 18px; margin-bottom: 30px; }
+        .tab { flex: 1; padding: 12px; text-align: center; border-radius: 14px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s; color: var(--text-light); }
         .tab.active { color: var(--primary-blue); background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
 
         /* Form Controls */
@@ -72,26 +87,63 @@
             border: 2px solid transparent;
             transition: all 0.2s;
         }
-        .input-wrapper:focus-within { border-color: var(--primary-blue); background: white; }
+        .input-wrapper:focus-within { border-color: var(--brand-color); background: white; }
         .input-wrapper.error { border-color: var(--danger-red); }
-        .input-wrapper.success { border-color: var(--success-green); }
 
         .input-wrapper i.field-icon { color: var(--text-light); font-size: 16px; width: 20px; text-align: center; }
         .input-wrapper input { border: none; background: transparent; outline: none; width: 100%; font-weight: 500; color: var(--text-dark); }
-        .input-wrapper input::placeholder { color: #B9C3D5; }
 
-        .toggle-pass { color: var(--text-light); cursor: pointer; padding: 5px; margin-right: -5px; }
-        .field-status { font-size: 14px; margin-left: auto; }
-        .fa-circle-check { color: var(--success-green); }
-
+        .toggle-pass { color: var(--text-light); cursor: pointer; padding: 5px; }
         .error-msg { color: var(--danger-red); font-size: 11px; font-weight: 600; margin-top: 6px; padding-left: 5px; min-height: 14px; }
 
-        /* Password Requirements */
-        .pass-requirements { margin-top: 10px; display: none; }
-        .req-item { font-size: 11px; color: var(--text-light); display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-        .req-item i { font-size: 10px; }
-        .req-item.valid { color: var(--success-green); }
-        .req-item.valid i::before { content: "\f00c"; }
+        /* OTP INPUTS */
+        .otp-wrapper { display: flex; justify-content: space-between; gap: 10px; margin: 40px 0; }
+        .otp-input {
+            width: 50px;
+            height: 60px;
+            background: var(--soft-gray);
+            border: 2.5px solid transparent;
+            border-radius: 16px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-dark);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+        }
+        .otp-input:focus {
+            border-color: var(--brand-color);
+            background: white;
+            transform: scale(1.08);
+            box-shadow: 0 10px 20px rgba(43, 150, 205, 0.15);
+        }
+
+        /* Success Animation */
+        .success-box {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            box-shadow: 0 15px 35px rgba(43, 150, 205, 0.3);
+            position: relative;
+        }
+        .checkmark {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: block;
+            stroke-width: 5;
+            stroke: var(--brand-color);
+            stroke-miterlimit: 10;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        @keyframes stroke { 100% { stroke-dashoffset: 0; } }
 
         /* Submit Button */
         .submit-btn { 
@@ -112,14 +164,10 @@
             justify-content: center;
             gap: 10px;
         }
-        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
-        .submit-btn:active:not(:disabled) { transform: scale(0.98); }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .loader { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        .forgot-pass { text-align: center; margin-top: 20px; }
-        .forgot-pass a { color: var(--text-light); font-size: 13px; font-weight: 600; text-decoration: none; }
 
         .divider { display: flex; align-items: center; text-align: center; margin: 30px 0; color: var(--border-color); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
         .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1.5px solid var(--border-color); }
@@ -127,105 +175,99 @@
 
         .social-btns { display: flex; gap: 15px; }
         .social-btn { flex: 1; border: 2px solid var(--border-color); border-radius: 18px; padding: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s; }
-        .social-btn:active { background: var(--soft-gray); transform: scale(0.95); }
         .social-btn i { font-size: 20px; }
-        .fa-google { color: #DB4437; }
-        .fa-apple { color: #000; }
-
-        /* Animation Classes */
-        .fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
     <div class="auth-container">
-        <div class="header">
+        <!-- HEADER -->
+        <div class="header" id="auth-header">
             <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
             <h1 id="auth-title">С возвращением!</h1>
             <p class="subtitle" id="auth-subtitle">Войдите в аккаунт, чтобы продолжить поиск вашей идеальной дачи.</p>
         </div>
 
-        <div class="tabs">
-            <div class="tab active" data-tab="login">Вход</div>
-            <div class="tab" data-tab="register">Регистрация</div>
+        <!-- SCREEN 1: INPUT -->
+        <div id="screen-input" class="screen active">
+            <div class="tabs">
+                <div class="tab active" data-tab="login">Вход</div>
+                <div class="tab" data-tab="register">Регистрация</div>
+            </div>
+
+            <form id="auth-form" autocomplete="off" novalidate>
+                <div class="form-group" id="group-name" style="display: none;">
+                    <label>Ваше имя</label>
+                    <div class="input-wrapper">
+                        <i class="far fa-user field-icon"></i>
+                        <input type="text" id="input-name" placeholder="Введите имя">
+                    </div>
+                    <div class="error-msg" id="error-name"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Email или телефон</label>
+                    <div class="input-wrapper">
+                        <i class="far fa-envelope field-icon" id="identity-icon"></i>
+                        <input type="text" id="input-identity" placeholder="example@mail.com или +998...">
+                    </div>
+                    <div class="error-msg" id="error-identity"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock field-icon"></i>
+                        <input type="password" id="input-password" placeholder="••••••••">
+                        <i class="far fa-eye toggle-pass"></i>
+                    </div>
+                    <div class="error-msg" id="error-password"></div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="btn-submit">
+                    <span class="loader"></span>
+                    <span class="btn-text">Войти</span>
+                </button>
+            </form>
+
+            <div class="divider"><span>или продолжить через</span></div>
+            <div class="social-btns">
+                <div class="social-btn" onclick="alert('Google Auth soon')"><i class="fab fa-google" style="color:#DB4437"></i></div>
+                <div class="social-btn" onclick="alert('Apple Auth soon')"><i class="fab fa-apple"></i></div>
+            </div>
         </div>
 
-        <form id="auth-form" autocomplete="off" novalidate>
-            <!-- Name Field (Registration Only) -->
-            <div class="form-group" id="group-name" style="display: none;">
-                <label>Ваше имя</label>
-                <div class="input-wrapper">
-                    <i class="far fa-user field-icon"></i>
-                    <input type="text" id="input-name" placeholder="Введите имя" maxlength="50">
-                    <div class="field-status"></div>
-                </div>
-                <div class="error-msg" id="error-name"></div>
+        <!-- SCREEN 2: OTP -->
+        <div id="screen-otp" class="screen">
+            <h1 style="text-align: center; font-size: 24px;">Введите код</h1>
+            <p class="subtitle" style="text-align: center;">Мы отправили код подтверждения на ваш email.</p>
+            
+            <div class="otp-wrapper">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
             </div>
 
-            <!-- Identity Field (Email or Phone) -->
-            <div class="form-group">
-                <label>Email или телефон</label>
-                <div class="input-wrapper">
-                    <i class="far fa-envelope field-icon" id="identity-icon"></i>
-                    <input type="text" id="input-identity" placeholder="example@mail.com или +998..." required>
-                    <div class="field-status"></div>
-                </div>
-                <div class="error-msg" id="error-identity"></div>
-            </div>
-
-            <!-- Password Field -->
-            <div class="form-group">
-                <label>Пароль</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-lock field-icon"></i>
-                    <input type="password" id="input-password" placeholder="••••••••" required>
-                    <i class="far fa-eye toggle-pass"></i>
-                </div>
-                <div class="error-msg" id="error-password"></div>
-                
-                <!-- Requirements (Registration Only) -->
-                <div class="pass-requirements" id="pass-reqs">
-                    <div class="req-item" data-req="length"><i class="fas fa-circle"></i> Минимум 8 символов</div>
-                    <div class="req-item" data-req="case"><i class="fas fa-circle"></i> Заглавная и строчная буквы</div>
-                    <div class="req-item" data-req="digit"><i class="fas fa-circle"></i> Минимум 1 цифра</div>
-                    <div class="req-item" data-req="special"><i class="fas fa-circle"></i> Спецсимвол (!@#$%^&*)</div>
-                </div>
-            </div>
-
-            <!-- Confirm Password Field (Registration Only) -->
-            <div class="form-group" id="group-confirm" style="display: none;">
-                <label>Подтверждение пароля</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-shield-check field-icon"></i>
-                    <input type="password" id="input-confirm" placeholder="••••••••">
-                    <div class="field-status"></div>
-                </div>
-                <div class="error-msg" id="error-confirm"></div>
-            </div>
-
-            <button type="submit" class="submit-btn" id="btn-submit" disabled>
-                <span class="loader"></span>
-                <span class="btn-text">Войти</span>
-            </button>
-
-            <div class="forgot-pass" id="forgot-link">
-                <a href="#">Забыли пароль?</a>
-            </div>
-        </form>
-
-        <div class="divider"><span>или продолжить через</span></div>
-
-        <div class="social-btns">
-            <div class="social-btn" onclick="socialAuth('google')">
-                <i class="fab fa-google"></i>
-            </div>
-            <div class="social-btn" onclick="socialAuth('apple')">
-                <i class="fab fa-apple"></i>
-            </div>
+            <p style="text-align: center; font-size: 13px; color: var(--text-light);">
+                Не получили код? <a href="#" id="resend-otp" style="color: var(--brand-color); font-weight: 700; text-decoration: none;">Отправить еще раз</a>
+            </p>
         </div>
+
+        <!-- SCREEN 3: SUCCESS -->
+        <div id="screen-success" class="screen" style="text-align: center; padding-top: 40px;">
+            <div class="success-box">
+                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <path fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+            </div>
+            <h1 style="font-size: 24px;">Verified successfully</h1>
+            <p class="subtitle">Добро пожаловать в DachaGo!</p>
+        </div>
+
     </div>
 
-    <!-- Scripts -->
     <script src="config.js"></script>
     <script src="auth.js"></script>
 </body>

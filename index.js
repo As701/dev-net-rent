@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
+    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api';
     
     // --- ELEMENTS ---
     const displayName = document.getElementById('display-name');
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     roomChips.forEach(chip => {
         chip.onclick = () => {
-            roomChips.forEach(c => c.classList.remove('active'));
+            roomChips.forEach(c => i.classList.remove('active'));
             chip.classList.add('active');
             selectedRooms = chip.dataset.rooms;
         };
@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.closeNotificationSheet = () => {
         notifSheet.classList.remove('active');
-        setTimeout(() => notifOverlay.classList.remove('active'), 300);
+        setTimeout(() => { notifOverlay.classList.remove('active'); }, 300);
     };
     if (notifOverlay) notifOverlay.onclick = closeNotificationSheet;
 
@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             mockNotifications.map(n => `<div class="notif-item ${n.unread ? 'unread' : ''}" data-id="${n.id}" onclick="openNotificationDetails(${n.id})"><div class="notif-icon-wrap ${n.iconClass}"><i class="${n.icon}"></i></div><div class="notif-content"><div class="notif-item-title"><span>${n.title}</span><span class="notif-time">${n.time}</span></div><p class="notif-desc">${n.desc}</p></div>${n.unread ? '<div class="unread-dot"></div>' : ''}</div>`).join('');
     }
 
-    // --- SMART SEARCH (CLEAN & STABLE) ---
+    // --- SMART SEARCH ---
     const searchModal = document.getElementById('search-modal');
     const modalSearchInput = document.getElementById('modal-search-input');
     const executeSearchBtn = document.getElementById('execute-search');
@@ -350,8 +350,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mainSearchInput = document.getElementById('search-input');
     const resultsSection = document.getElementById('search-results-section');
     const modalListingsContainer = document.getElementById('modal-listings-container');
-    const modalFilterBtn = document.getElementById('modal-filter-trigger');
-    const modalLocationBtn = document.getElementById('modal-location-btn');
 
     let searchHistory = JSON.parse(localStorage.getItem('search_history') || '[]');
 
@@ -368,33 +366,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!historySection || !resultsSection) return;
         if (frameName === 'history') {
             resultsSection.style.display = 'none';
-            if (searchHistory.length > 0) { historySection.style.display = 'block'; historySection.classList.add('frame-slide-in'); }
+            if (searchHistory.length > 0) { historySection.style.display = 'block'; }
             else historySection.style.display = 'none';
         } else {
             historySection.style.display = 'none';
             resultsSection.style.display = 'block';
-            resultsSection.classList.add('frame-slide-in');
-            setTimeout(() => resultsSection.classList.remove('frame-slide-in'), 400);
         }
     }
 
     function renderHistory() {
         if (!historyList) return;
-        if (searchHistory.length === 0) {
-            if (historySection) historySection.style.display = 'none';
-            historyList.innerHTML = '';
-            return;
-        }
-        if (historySection) historySection.style.display = 'block';
-        historyList.innerHTML = searchHistory.map(item => `<div class="history-chip" onclick="useHistoryItem('${item.replace(/'/g, "\\'")}')"><i class="fas fa-history"></i><span>${item}</span></div>`).join('');
+        if (searchHistory.length === 0) { historySection.style.display = 'none'; return; }
+        historySection.style.display = 'block';
+        historyList.innerHTML = searchHistory.map(item => `<div class="history-chip" onclick="useHistoryItem('${item}')"><i class="fas fa-history"></i><span>${item}</span></div>`).join('');
     }
 
     function closeSearchModal() {
         if (!searchModal) return;
         searchModal.classList.remove('active');
-        if (mainSearchInput) mainSearchInput.value = '';
-        if (modalSearchInput) modalSearchInput.value = '';
-        applyFilters();
         setTimeout(() => { searchModal.style.display = 'none'; document.body.classList.remove('search-active'); }, 300);
     }
 
@@ -404,9 +393,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     function performSearch(query) {
-        if (!query || !query.trim()) { showFrame('history'); return; }
+        if (!query || !query.trim()) return;
         const q = query.trim();
-        searchHistory = searchHistory.filter(h => h.toLowerCase() !== q.toLowerCase());
+        searchHistory = searchHistory.filter(h => h !== q);
         searchHistory.unshift(q);
         if (searchHistory.length > 10) searchHistory.pop();
         localStorage.setItem('search_history', JSON.stringify(searchHistory));
@@ -419,22 +408,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!modalListingsContainer) return;
         showFrame('results');
         const q = query.toLowerCase();
-        const filtered = allListings.filter(l => {
-            const matchesType = l.type === selectedType;
-            return l.title.toLowerCase().includes(q) || l.location.toLowerCase().includes(q);
-        });
-        modalListingsContainer.innerHTML = filtered.length === 0 ? '<div style="text-align:center; padding:60px; color:var(--text-light);"><p>Ничего не найдено</p></div>' :
-            filtered.map(item => `<div class="property-card" onclick="window.location.href='details.html?id=${item.id}'"><div class="card-image-wrap"><img src="${item.image}" class="card-img" onerror="this.src='https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80'"><button class="fav-btn" onclick="toggleFavorite(event, '${item.id}')"><i class="${favorites.includes(String(item.id)) ? 'fas' : 'far'} fa-heart"></i></button></div><div class="card-info"><h3 class="card-title" style="font-size:16px;">${item.title}</h3><div class="card-loc" style="font-size:12px;"><i class="fas fa-map-marker-alt" style="color:var(--brand-blue)"></i> ${item.location}</div><div class="card-bottom"><div class="card-price" style="font-size:18px;">${(item.price || 0).toLocaleString()} <span>сум</span></div></div></div></div>`).join('');
+        const filtered = allListings.filter(l => l.title.toLowerCase().includes(q) || l.location.toLowerCase().includes(q));
+        modalListingsContainer.innerHTML = filtered.length === 0 ? '<div style="text-align:center; padding:40px; color:var(--text-light);"><p>Ничего не найдено</p></div>' :
+            filtered.map(item => `<div class="property-card" onclick="window.location.href='details.html?id=${item.id}'"><div class="card-image-wrap"><img src="${item.image}" class="card-img"><button class="fav-btn" onclick="toggleFavorite(event, '${item.id}')"><i class="${favorites.includes(String(item.id)) ? 'fas' : 'far'} fa-heart"></i></button></div><div class="card-info"><h3 class="card-title">${item.title}</h3><div class="card-loc">${item.location}</div><div class="card-price">${(item.price || 0).toLocaleString()} <span>сум</span></div></div></div>`).join('');
     }
 
-    if (modalFilterBtn) modalFilterBtn.onclick = () => { if (filterBtn) filterBtn.click(); };
-    if (modalLocationBtn) modalLocationBtn.onclick = () => { if (filterBtn) filterBtn.click(); setTimeout(() => { if (regionSelect) regionSelect.focus(); }, 500); };
-    if (modalSearchInput) modalSearchInput.oninput = (e) => { if (!e.target.value.trim()) { showFrame('history'); renderHistory(); } };
     if (mainSearchBar) mainSearchBar.addEventListener('click', (e) => { if (e.target.id !== 'search-input') openSearchModal(); });
-    if (mainSearchInput) { mainSearchInput.addEventListener('mousedown', (e) => { e.preventDefault(); openSearchModal(); }); mainSearchInput.addEventListener('focus', (e) => { e.preventDefault(); mainSearchInput.blur(); openSearchModal(); }); }
     if (executeSearchBtn) executeSearchBtn.onclick = () => performSearch(modalSearchInput.value);
-    if (modalSearchInput) modalSearchInput.onkeypress = (e) => { if (e.key === 'Enter') performSearch(modalSearchInput.value); };
-    if (clearHistoryBtn) clearHistoryBtn.onclick = () => { searchHistory = []; localStorage.setItem('search_history', '[]'); if (historySection) historySection.style.display = 'none'; if (historyList) historyList.innerHTML = ''; };
     if (closeSearchModalBtn) closeSearchModalBtn.onclick = closeSearchModal;
 
 });
