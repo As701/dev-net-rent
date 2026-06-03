@@ -28,7 +28,7 @@ app.add_middleware(
 )
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'database.sqlite')
-SECRET_KEY = "DACHA_GO_ULTRA_SECRET_KEY_2026" # В реальном проекте брать из .env
+SECRET_KEY = "DACHA_GO_ULTRA_SECRET_KEY_2026" 
 
 # SMTP CONFIG (PLACEHOLDERS)
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
@@ -55,9 +55,9 @@ def send_otp_email(to_email, name, code):
         msg = MIMEMultipart()
         msg['From'] = SMTP_USER
         msg['To'] = to_email
-        msg['Subject'] = "Код подтверждения DachaGo"
+        msg['Subject'] = "Код подтверждения для DachaGo"
         
-        body = f"Привет, {name}!\n\nВаш код подтверждения: {code}\nОн будет действовать 5 минут."
+        body = f"Здравствуйте, {name}!\n\nВаш код для подтверждения аккаунта: {code}.\nКод действует 5 минут."
         msg.attach(MIMEText(body, 'plain'))
         
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
@@ -82,11 +82,26 @@ async def register(data: Dict[str, str]):
         raise HTTPException(status_code=400, detail="Все поля обязательны")
     
     conn = get_db()
-    existing = conn.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
-    if existing:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Email уже зарегистрирован")
+    existing = conn.execute("SELECT id, is_verified FROM users WHERE email=?", (email,)).fetchone()
     
+    # If user exists but not verified, update their code and return 200
+    if existing:
+        if existing['is_verified']:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Этот Email уже занят")
+        
+        otp_code = str(random.randint(100000, 999999))
+        expires_at = (datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+        hashed_pass = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
+        conn.execute("""
+            UPDATE users SET verification_code=?, code_expires_at=?, name=?, password=? WHERE email=?
+        """, (otp_code, expires_at, name, hashed_pass, email))
+        conn.commit()
+        send_otp_email(email, name, otp_code)
+        conn.close()
+        return {"status": "success", "message": "Код отправлен на почту"}
+
     hashed_pass = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     otp_code = str(random.randint(100000, 999999))
     expires_at = (datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
@@ -95,20 +110,18 @@ async def register(data: Dict[str, str]):
     try:
         conn.execute("""
             INSERT INTO users (id, name, email, password, is_verified, verification_code, code_expires_at, role)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (uid, name, email, hashed_pass, False, otp_code, expires_at, "user"))
+            VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+        """, (uid, name, email, hashed_pass, otp_code, expires_at, "user"))
         conn.commit()
-        
         send_otp_email(email, name, otp_code)
-            
         conn.close()
-        return {"success": True, "message": "Код отправлен на почту"}
+        return {"status": "success", "message": "Код отправлен на почту"}
     except Exception as e:
         conn.close()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/auth/verify")
-async def verify(data: Dict[str, str]):
+@app.post("/api/auth/verify-code")
+async def verify_code(data: Dict[str, str]):
     email = data.get('email')
     code = data.get('code')
     
@@ -119,6 +132,10 @@ async def verify(data: Dict[str, str]):
         conn.close()
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     
+    if user['is_verified']:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Аккаунт уже подтвержден")
+    
     if user['verification_code'] != code:
         conn.close()
         raise HTTPException(status_code=400, detail="Неверный код подтверждения")
@@ -126,12 +143,11 @@ async def verify(data: Dict[str, str]):
     expiry = datetime.datetime.strptime(user['code_expires_at'], "%Y-%m-%d %H:%M:%S")
     if datetime.datetime.now() > expiry:
         conn.close()
-        raise HTTPException(status_code=400, detail="Срок действия кода истек")
+        raise HTTPException(status_code=400, detail="Срок действия кода истек. Запросите новый код.")
     
     conn.execute("UPDATE users SET is_verified=1, verification_code=NULL, code_expires_at=NULL WHERE email=?", (email,))
     conn.commit()
     
-    # Генерация токена
     token = jwt.encode({
         "sub": user['id'],
         "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
@@ -185,24 +201,12 @@ async def login_modern(data: Dict[str, str]):
         }
     }
 
-@app.post("/api/login")
-async def login_legacy(data: Dict[str, str]):
-    return await login_modern({"identity": data.get('email_or_phone'), "password": data.get('password')})
-
 @app.get("/api/listings")
 async def get_listings():
     conn = get_db()
     rows = conn.execute("SELECT * FROM listings WHERE status='active' OR status IS NULL").fetchall()
     conn.close()
     return [dict(r) for r in rows]
-
-@app.get("/api/users/{user_id}")
-async def get_user(user_id: str):
-    conn = get_db()
-    u = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-    conn.close()
-    if u: return dict(u)
-    raise HTTPException(status_code=404)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=5005)

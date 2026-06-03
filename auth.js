@@ -1,6 +1,7 @@
 (function() {
     let currentTab = 'login';
-    let userEmail = ''; // To store email for verification
+    let userEmail = ''; 
+    let timerInterval = null;
 
     const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
 
@@ -12,20 +13,23 @@
     
     const form = document.getElementById('auth-form');
     const submitBtn = document.getElementById('btn-submit');
-    const loader = submitBtn.querySelector('.loader');
-    const btnText = submitBtn.querySelector('.btn-text');
+    const verifyBtn = document.getElementById('btn-verify-otp');
+    const otpInput = document.getElementById('otp-main-input');
+    const timerEl = document.getElementById('otp-timer');
+    const resendBtn = document.getElementById('resend-otp');
+    const displayEmail = document.getElementById('display-user-email');
 
     const nameInput = document.getElementById('input-name');
     const identityInput = document.getElementById('input-identity');
     const passwordInput = document.getElementById('input-password');
-    const otpInputs = document.querySelectorAll('.otp-input');
 
     // Initialize
     function init() {
         setupTabs();
-        setupOTPLogic();
         setupPasswordToggle();
         form.addEventListener('submit', handleSubmit);
+        if (verifyBtn) verifyBtn.addEventListener('click', handleVerifyOTP);
+        if (resendBtn) resendBtn.addEventListener('click', handleResendOTP);
     }
 
     function setupTabs() {
@@ -44,7 +48,7 @@
                     ? 'Заполните данные, чтобы начать пользоваться всеми функциями DachaGo.' 
                     : 'Войдите в аккаунт, чтобы продолжить поиск вашей идеальной дачи.';
                 
-                btnText.innerText = target === 'register' ? 'Зарегистрироваться' : 'Войти';
+                submitBtn.querySelector('.btn-text').innerText = target === 'register' ? 'Зарегистрироваться' : 'Войти';
                 clearErrors();
             });
         });
@@ -63,38 +67,30 @@
     }
 
     // --- OTP LOGIC ---
-    function setupOTPLogic() {
-        otpInputs.forEach((input, index) => {
-            input.addEventListener('input', (e) => {
-                if (e.target.value.length > 1) {
-                    e.target.value = e.target.value.slice(0, 1);
-                }
-                if (e.target.value && index < otpInputs.length - 1) {
-                    otpInputs[index + 1].focus();
-                }
-                checkOTPComplete();
-            });
-
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && !e.target.value && index > 0) {
-                    otpInputs[index - 1].focus();
-                }
-            });
-        });
+    function startTimer() {
+        let seconds = 59;
+        resendBtn.classList.add('disabled');
+        if (timerInterval) clearInterval(timerInterval);
+        
+        timerInterval = setInterval(() => {
+            const displaySec = seconds < 10 ? '0' + seconds : seconds;
+            timerEl.innerText = `Повторный запрос кода доступен через 00:${displaySec}`;
+            if (seconds <= 0) {
+                clearInterval(timerInterval);
+                timerEl.innerText = 'Вы можете запросить код повторно';
+                resendBtn.classList.remove('disabled');
+            }
+            seconds--;
+        }, 1000);
     }
 
-    async function checkOTPComplete() {
-        const code = Array.from(otpInputs).map(i => i.value).join('');
-        if (code.length === 6) {
-            // Disable inputs during verification
-            otpInputs.forEach(i => i.disabled = true);
-            await verifyOTP(code);
-        }
-    }
+    async function handleVerifyOTP() {
+        const code = otpInput.value.trim();
+        if (code.length !== 6) return alert('Введите 6 цифр кода');
 
-    async function verifyOTP(code) {
+        setLoading(true, verifyBtn);
         try {
-            const response = await fetch(`${API_URL}/auth/verify`, {
+            const response = await fetch(`${API_URL}/auth/verify-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail, code: code })
@@ -106,17 +102,40 @@
                 showSuccess();
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 2500);
+                setTimeout(() => { window.location.href = 'index.html'; }, 2500);
             } else {
-                alert(data.detail || 'Неверный код');
-                otpInputs.forEach(i => { i.disabled = false; i.value = ''; });
-                otpInputs[0].focus();
+                alert(data.detail || 'Неверный код подтверждения');
             }
         } catch (err) {
             alert('Ошибка связи с сервером');
-            otpInputs.forEach(i => i.disabled = false);
+        } finally {
+            setLoading(false, verifyBtn);
+        }
+    }
+
+    async function handleResendOTP(e) {
+        e.preventDefault();
+        if (resendBtn.classList.contains('disabled')) return;
+
+        try {
+            const response = await fetch(`${API_URL}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    name: nameInput.value, 
+                    email: userEmail, 
+                    password: passwordInput.value 
+                })
+            });
+            if (response.ok) {
+                alert('Код отправлен повторно');
+                startTimer();
+            } else {
+                const data = await response.json();
+                alert(data.detail || 'Ошибка отправки');
+            }
+        } catch (err) {
+            alert('Ошибка сервера');
         }
     }
 
@@ -124,10 +143,12 @@
     function showOTPScreen() {
         screenInput.classList.add('exit');
         authHeader.style.display = 'none';
+        displayEmail.innerText = userEmail;
         setTimeout(() => {
             screenInput.classList.remove('active', 'exit');
             screenOtp.classList.add('active');
-            otpInputs[0].focus();
+            startTimer();
+            otpInput.focus();
         }, 400);
     }
 
@@ -147,15 +168,16 @@
         const identity = identityInput.value.trim();
         const password = passwordInput.value;
 
-        // Simple validation
-        if (currentTab === 'register' && !name) return showError('name', 'Введите имя');
+        // Validation
+        if (currentTab === 'register' && name.length < 2) return showError('name', 'Минимум 2 символа');
         if (!identity) return showError('identity', 'Введите email или телефон');
         if (password.length < 8) return showError('password', 'Минимум 8 символов');
+        if (!/[A-Z]/.test(password) || !/\d/.test(password)) return showError('password', 'Нужна заглавная буква и цифра');
 
-        setLoading(true);
+        setLoading(true, submitBtn);
 
         if (currentTab === 'register') {
-            userEmail = identity; // Assume identity is email for OTP
+            userEmail = identity;
             try {
                 const response = await fetch(`${API_URL}/auth/register`, {
                     method: 'POST',
@@ -171,7 +193,7 @@
             } catch (err) {
                 alert('Ошибка сервера');
             } finally {
-                setLoading(false);
+                setLoading(false, submitBtn);
             }
         } else {
             // Login
@@ -192,13 +214,15 @@
             } catch (err) {
                 alert('Ошибка сервера');
             } finally {
-                setLoading(false);
+                setLoading(false, submitBtn);
             }
         }
     }
 
-    function setLoading(isLoading) {
-        submitBtn.disabled = isLoading;
+    function setLoading(isLoading, btn) {
+        const loader = btn.querySelector('.loader');
+        const btnText = btn.querySelector('.btn-text');
+        btn.disabled = isLoading;
         loader.style.display = isLoading ? 'block' : 'none';
         btnText.style.display = isLoading ? 'none' : 'block';
     }
@@ -208,6 +232,7 @@
         if (errEl) errEl.innerText = msg;
         const wrapper = document.getElementById(`input-${field}`).closest('.input-wrapper');
         wrapper.classList.add('error');
+        setTimeout(() => wrapper.classList.remove('error'), 3000);
     }
 
     function clearErrors() {
