@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
     <title>Вход / Регистрация - DachaGo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -14,15 +14,8 @@
             --text-light: #9BA5B7;
         }
 
-        /* 
-           Requirement: font-size 16px !important for all inputs.
-           This is the primary fix for the iPhone zoom issue.
-        */
-        input,
-        textarea,
-        select,
-        .form-control,
-        .input-wrapper input {
+        /* Prevent auto-zoom on iOS */
+        input, textarea, select, .form-control {
             font-size: 16px !important;
             -webkit-text-size-adjust: 100%;
         }
@@ -34,31 +27,44 @@
             display: flex;
             flex-direction: column;
             min-height: 100dvh;
-            min-height: calc(var(--vh, 1vh) * 100);
+            /* Using a more stable height calculation to avoid jumping */
+            height: 100%;
             color: var(--text-dark);
             overflow-x: hidden;
-            position: relative;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .auth-container {
-            padding: 20px;
+            padding: 40px 25px;
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            /* Removed justify-content: center to prevent the "jump" when keyboard appears */
             min-height: 100dvh;
-            min-height: calc(var(--vh, 1vh) * 100);
             box-sizing: border-box;
+            background: white;
         }
 
-        .back-btn { width: 45px; height: 45px; background: var(--soft-gray); border-radius: 15px; display: flex; align-items: center; justify-content: center; color: var(--text-dark); text-decoration: none; margin-bottom: 30px; }
+        .back-btn { 
+            width: 45px; 
+            height: 45px; 
+            background: var(--soft-gray); 
+            border-radius: 15px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: var(--text-dark); 
+            text-decoration: none; 
+            margin-bottom: 30px; 
+            flex-shrink: 0;
+        }
 
         h1 { font-weight: 800; font-size: 28px; margin-bottom: 10px; }
         p.subtitle { color: var(--text-light); font-size: 14px; margin-bottom: 30px; line-height: 1.5; }        
 
-        .tabs { display: flex; background: var(--soft-gray); padding: 5px; border-radius: 18px; margin-bottom: 30px; }
+        .tabs { display: flex; background: var(--soft-gray); padding: 5px; border-radius: 18px; margin-bottom: 30px; flex-shrink: 0; }
         .tab { flex: 1; padding: 12px; text-align: center; border-radius: 14px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s; color: var(--text-light); }
-        .tab.active { background: white; color: var(--primary-blue); shadow: 0 4px 10px rgba(0,0,0,0.05); }     
+        .tab.active { background: white; color: var(--primary-blue); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }     
 
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--text-dark); }
@@ -71,15 +77,29 @@
             outline: none;
             width: 100%;
             font-weight: 500;
+            font-size: 16px;
         }
 
-        .submit-btn { width: 100%; background: var(--primary-blue); color: white; border: none; padding: 18px; border-radius: 20px; font-weight: 800; font-size: 15px; margin-top: 10px; box-shadow: 0 10px 20px rgba(0,102,255,0.15); cursor: pointer; }
+        .submit-btn { 
+            width: 100%; 
+            background: var(--primary-blue); 
+            color: white; 
+            border: none; 
+            padding: 18px; 
+            border-radius: 20px; 
+            font-weight: 800; 
+            font-size: 15px; 
+            margin-top: 10px; 
+            box-shadow: 0 10px 20px rgba(0,102,255,0.15); 
+            cursor: pointer; 
+            flex-shrink: 0;
+        }
 
         .divider { display: flex; align-items: center; text-align: center; margin: 30px 0; color: #eee; font-size: 12px; font-weight: 700; text-transform: uppercase; }
         .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
         .divider span { padding: 0 15px; color: var(--text-light); }
 
-        .social-btns { display: flex; gap: 15px; }
+        .social-btns { display: flex; gap: 15px; margin-bottom: 20px; }
         .social-btn { flex: 1; border: 1px solid #F0F3F6; border-radius: 18px; padding: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: background 0.2s; }
         .social-btn:active { background: #fcfcfc; }
         .social-btn i { font-size: 20px; }
@@ -139,15 +159,6 @@
         </div>
     </div>
 
-    <script>
-        function updateViewportHeight() {
-            let vh = window.innerHeight * 0.01;
-            document.documentElement.style.setProperty('--vh', `${vh}px`);
-        }
-        window.addEventListener('resize', updateViewportHeight);
-        window.addEventListener('orientationchange', updateViewportHeight);
-        updateViewportHeight();
-    </script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
 </body>
