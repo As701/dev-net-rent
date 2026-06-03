@@ -1,5 +1,7 @@
 window.DachaGoConfig = {
-    apiUrl: 'https://dev-net-rent.onrender.com/api',
+    apiUrl: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+        ? 'http://localhost:5005/api' 
+        : 'https://dev-net-rent.onrender.com/api',
     colors: {
         primary: '#2599C8',
         background: '#F7F9FC',
