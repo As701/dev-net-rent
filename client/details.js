@@ -30,52 +30,52 @@ document.addEventListener('DOMContentLoaded', async () => {
     const amenityIcons = {
         'pool': { icon: 'fa-swimming-pool', label: 'Бассейн' },
         'Бассейн': { icon: 'fa-swimming-pool', label: 'Бассейн' },
-        
+
         'sauna': { icon: 'fa-hot-tub', label: 'Сауна/Баня' },
         'Сауна/Баня': { icon: 'fa-hot-tub', label: 'Сауна/Баня' },
-        'Сауна': { icon: 'fa-hot-tub', label: 'Сауна/Баня' },
-        
+        'Sauna': { icon: 'fa-hot-tub', label: 'Сауна/Баня' },
+
         'wifi': { icon: 'fa-wifi', label: 'Wi-Fi' },
         'Wi-Fi': { icon: 'fa-wifi', label: 'Wi-Fi' },
-        
+
         'ac': { icon: 'fa-snowflake', label: 'Конд-р' },
         'Конд-р': { icon: 'fa-snowflake', label: 'Конд-р' },
         'Кондиционер': { icon: 'fa-snowflake', label: 'Конд-р' },
-        
+
         'tv': { icon: 'fa-tv', label: 'ТВ' },
         'ТВ': { icon: 'fa-tv', label: 'ТВ' },
-        
+
         'kitchen': { icon: 'fa-utensils', label: 'Кухня' },
         'Кухня': { icon: 'fa-utensils', label: 'Кухня' },
-        
+
         'wash': { icon: 'fa-soap', label: 'Стирка' },
         'Стирка': { icon: 'fa-soap', label: 'Стирка' },
-        
+
         'grill': { icon: 'fa-fire', label: 'Мангал' },
         'Мангал': { icon: 'fa-fire', label: 'Мангал' },
-        
+
         'billiards': { icon: 'fa-circle', label: 'Бильярд' },
         'Бильярд': { icon: 'fa-circle', label: 'Бильярд' },
-        
+
         'tennis': { icon: 'fa-table-tennis-paddle-ball', label: 'Теннис' },
         'Теннис': { icon: 'fa-table-tennis-paddle-ball', label: 'Теннис' },
-        
+
         'karaoke': { icon: 'fa-microphone', label: 'Караоке' },
         'Караоке': { icon: 'fa-microphone', label: 'Караоке' },
-        
+
         'ps': { icon: 'fa-gamepad', label: 'Play Station' },
         'Play Station': { icon: 'fa-gamepad', label: 'Play Station' },
-        
+
         'bowling': { icon: 'fa-bowling-ball', label: 'Боулинг' },
         'Боулинг': { icon: 'fa-bowling-ball', label: 'Боулинг' },
-        
+
         'cinema': { icon: 'fa-film', label: 'Кино' },
         'Кино': { icon: 'fa-film', label: 'Кино' }
     };
 
     function renderAmenities(amenitiesJson) {
         if (!elements.amenities) return;
-        
+
         let list = [];
         try {
             if (typeof amenitiesJson === 'string') {
@@ -107,10 +107,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api';
-        const response = await fetch(`${API_URL}/listings`);
+        const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
+        const headers = { 'Content-Type': 'application/json' };
+        const token = localStorage.getItem('token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const response = await fetch(`${API_URL}/listings`, { headers });
+        if (!response.ok) throw new Error('Failed to fetch');
+        
         const listings = await response.json();
-        const item = listings.find(l => String(l.id) === String(listingId));   
+        const item = listings.find(l => String(l.id) === String(listingId));
 
         if (!item) {
             alert('Объявление не найдено');
@@ -119,9 +125,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // POPULATE UI
-        if (elements.galleryImg) elements.galleryImg.src = item.image || 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80';
-        if (elements.title) elements.title.innerText = item.title;
-        if (elements.location) elements.location.innerText = item.location;
+        if (elements.galleryImg) {
+            elements.galleryImg.src = item.image || 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80';
+            elements.galleryImg.onerror = function() {
+                this.src = 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80';
+            };
+        }
+        if (elements.title) elements.title.innerText = item.title || 'Без названия';
+        if (elements.location) elements.location.innerText = item.location || 'Местоположение не указано';
         if (elements.id) elements.id.innerText = `ID: DG-${item.id.toString().padStart(3, '0')}`;
 
         const priceFormatted = (item.price || 0).toLocaleString();
@@ -140,33 +151,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (elements.area) elements.area.innerText = item.area || '-';
         if (elements.capacity) elements.capacity.innerText = item.capacity || '-';
         if (elements.description) elements.description.innerText = item.description || 'Описание не предоставлено.';
-        
+
         renderAmenities(item.amenities);
 
         if (elements.ownerName) elements.ownerName.innerText = item.owner_name || 'Владелец';
 
         // Favorite State
-        let favorites = JSON.parse(localStorage.getItem('favorites') || '[]'); 
+        let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
         if (elements.favBtn) {
             if (favorites.includes(String(item.id))) {
                 elements.favBtn.classList.add('active');
-                elements.favBtn.querySelector('i').className = 'fas fa-heart';     
+                elements.favBtn.querySelector('i').className = 'fas fa-heart';
             }
 
-                    elements.favBtn.onclick = () => {
-            const strId = String(item.id);
-            const index = favorites.indexOf(strId);
-            if (index > -1) {
-                favorites.splice(index, 1);
-                elements.favBtn.classList.remove('active');
-                elements.favBtn.querySelector('i').className = 'far fa-heart'; 
-            } else {
-                favorites.push(strId);
-                elements.favBtn.classList.add('active');
-                elements.favBtn.querySelector('i').className = 'fas fa-heart'; 
-            }
-            localStorage.setItem('favorites', JSON.stringify(favorites));      
-        };
+            elements.favBtn.onclick = () => {
+                const strId = String(item.id);
+                const index = favorites.indexOf(strId);
+                if (index > -1) {
+                    favorites.splice(index, 1);
+                    elements.favBtn.classList.remove('active');
+                    elements.favBtn.querySelector('i').className = 'far fa-heart';
+                } else {
+                    favorites.push(strId);
+                    elements.favBtn.classList.add('active');
+                    elements.favBtn.querySelector('i').className = 'fas fa-heart';
+                }
+                localStorage.setItem('favorites', JSON.stringify(favorites));
+            };
         }
 
         if (elements.chatBtn) {
@@ -177,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     alert('Пожалуйста, войдите в аккаунт, чтобы воспользоваться этой функцией.');
                     window.location.href = 'auth.html';
                 } else {
-                    window.location.href = `messages.html?chat_id=${item.id}`;     
+                    window.location.href = `messages.html?chat_id=${item.id}`;
                 }
             };
         }
@@ -197,7 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (error) {
         console.error('Error loading details:', error);
-        alert('Ошибка при загрузке данных');
+        alert('Ошибка при загрузке данных. Проверьте интернет-соединение.');
     } finally {
         if (elements.loading) elements.loading.style.display = 'none';
     }

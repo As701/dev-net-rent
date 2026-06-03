@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api';
+    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
     
     // --- ELEMENTS ---
     const displayName = document.getElementById('display-name');
@@ -18,15 +18,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const priceMaxInput = document.getElementById('price-max');
 
     const roomChips = document.querySelectorAll('#rooms-chips .chip');
-    const amenityChips = document.querySelectorAll('#amenities-chips .chip');  
+    const amenityChips = document.querySelectorAll('#amenities-chips .chip');
     const typeItems = document.querySelectorAll('.type-toggle-item');
     const typeSlider = document.getElementById('type-slider');
 
     const notifBtn = document.getElementById('notif-trigger');
     const notifModal = document.getElementById('notif-modal');
     const closeNotif = document.getElementById('close-notifications');
-    const notifContentArea = document.getElementById('notif-content-area');    
-    const headerNotifDot = document.getElementById('header-notif-dot');        
+    const notifContentArea = document.getElementById('notif-content-area');
+    const headerNotifDot = document.getElementById('header-notif-dot');
 
     const locationData = {
         "Ташкентская область": ["Ташкент", "Чарвак", "Чимган", "Бельдерсай", "Бричмулла", "Ходжикент", "Паркент", "Кибрай"],
@@ -37,22 +37,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     let allListings = [];
-    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');     
+    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
     let savedFilters = JSON.parse(localStorage.getItem('active_filters') || '{"min":"","max":"","type":"rent","region":"all","city":"all","rooms":"any","amenities":[]}');
     let selectedRooms = savedFilters.rooms || 'any';
     let selectedAmenities = savedFilters.amenities || [];
     let selectedType = savedFilters.type;
 
     const getUser = () => JSON.parse(localStorage.getItem('user'));
+    const getToken = () => localStorage.getItem('token');
 
     function updateGreeting() {
         const user = getUser();
         if (user) {
             if (displayName) displayName.innerText = user.name || 'Пользователь';
-            if (headerNotifDot) headerNotifDot.classList.add('active');        
+            if (headerNotifDot) headerNotifDot.classList.add('active');
         } else {
             if (displayName) displayName.innerHTML = '<a href="auth.html" style="text-decoration:none; color:var(--text-light);">Войти</a>';
-            if (headerNotifDot) headerNotifDot.classList.remove('active');     
+            if (headerNotifDot) headerNotifDot.classList.remove('active');
         }
     }
 
@@ -65,7 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="guest-state">
                     <i class="fas fa-lock"></i>
                     <h3>Уведомления доступны только авторизованным пользователям</h3>
-                    <p>Войдите в аккаунт, чтобы просматривать историю оповещений и ответов на запросы.</p>
+                    <p>Войдите в аккаунт, чтобы просматривать историю оповещений и ответов на запросы.</p>      
                     <a href="auth.html" class="login-btn-pro">Войти в профиль</a>
                 </div>`;
             return;
@@ -118,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (citySelect) citySelect.value = savedFilters.city;
         }
         roomChips.forEach(c => c.classList.toggle('active', c.dataset.rooms === selectedRooms));
-        amenityChips.forEach(c => c.classList.toggle('active', selectedAmenities.includes(c.dataset.id)));
+        amenityChips.forEach(c => c.classList.toggle('active', selectedAmenities.includes(c.dataset.id)));      
         typeItems.forEach((item, index) => {
             if (item.dataset.type === selectedType) {
                 item.classList.add('active');
@@ -137,7 +138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             rooms: selectedRooms,
             amenities: selectedAmenities
         };
-        localStorage.setItem('active_filters', JSON.stringify(filters));       
+        localStorage.setItem('active_filters', JSON.stringify(filters));
     }
 
     if (filterBtn) {
@@ -154,7 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeFilters = () => {
         filterSheet.classList.remove('active');
         filterFooter.classList.remove('active');
-        setTimeout(() => { filterSheet.style.display = 'none'; filterOverlay.style.display = 'none'; document.body.classList.remove('hide-nav'); }, 400);     
+        setTimeout(() => { filterSheet.style.display = 'none'; filterOverlay.style.display = 'none'; document.body.classList.remove('hide-nav'); }, 400);
     };
 
     if (filterOverlay) filterOverlay.onclick = closeFilters;
@@ -191,7 +192,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     categories.forEach(cat => {
         cat.onclick = () => {
-            categories.forEach(c => c.classList.remove('active'));
+            categories.forEach(c => {
+                if (c) c.classList.remove('active');
+            });
             cat.classList.add('active');
             applyFilters();
         };
@@ -200,16 +203,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (searchInput) searchInput.oninput = () => applyFilters();
 
     function applyFilters() {
-        const activeCat = document.querySelector('.category-item.active');     
-        const category = activeCat ? activeCat.dataset.category : 'all';       
+        const activeCat = document.querySelector('.category-item.active');
+        const category = activeCat ? activeCat.dataset.category : 'all';
         const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
-        const minP = parseInt(priceMinInput ? priceMinInput.value : 0) || 0;   
+        const minP = parseInt(priceMinInput ? priceMinInput.value : 0) || 0;
         const maxP = parseInt(priceMaxInput ? priceMaxInput.value : Infinity) || Infinity;
         saveCurrentFilters();
 
         const filtered = allListings.filter(l => {
             const matchesType = l.type === selectedType;
-            const matchesCat = category === 'all' || l.category === category;  
+            const matchesCat = category === 'all' || l.category === category;
             const matchesSearch = !query || l.title.toLowerCase().includes(query) || l.location.toLowerCase().includes(query);
             const matchesPrice = (l.price || 0) >= minP && (l.price || 0) <= maxP;
             let matchesRooms = true;
@@ -224,7 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             let matchesAmenities = true;
             if (selectedAmenities.length > 0) {
-                const itemAmenities = l.amenities ? (typeof l.amenities === 'string' ? JSON.parse(l.amenities) : l.amenities) : [];
+                const itemAmenities = l.amenities ? (typeof l.amenities === 'string' ? (l.amenities.startsWith('[') ? JSON.parse(l.amenities) : l.amenities.split(',')) : l.amenities) : [];
                 matchesAmenities = selectedAmenities.every(a => itemAmenities.includes(a));
             }
             return matchesType && matchesCat && matchesSearch && matchesPrice && matchesRooms && matchesLoc && matchesAmenities;
@@ -243,7 +246,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `
             <div class="property-card" onclick="window.location.href='details.html?id=${item.id}'">
                 <div class="card-image-wrap">
-                    <img src="${item.image}" class="card-img">
+                    <img src="${item.image}" class="card-img" onerror="this.src='https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80'">
                     <button class="fav-btn" onclick="toggleFavorite(event, '${item.id}')"><i class="${isFav ? 'fas' : 'far'} fa-heart"></i></button>
                 </div>
                 <div class="card-info">
@@ -254,7 +257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="feat-item"><i class="fas fa-users" style="color:var(--brand-blue)"></i> ${item.capacity || 0}</div>
                     </div>
                     <div class="card-bottom">
-                        <div class="card-price">${(item.price || 0).toLocaleString()} <span>сум/${item.type === 'rent' ? 'сут.' : 'объект'}</span></div>      
+                        <div class="card-price">${(item.price || 0).toLocaleString()} <span>сум/${item.type === 'rent' ? 'сут.' : 'объект'}</span></div>
                         <div style="background:var(--soft-gray); color:var(--brand-blue); padding:10px 16px; border-radius:12px; font-size:12px; font-weight:800;">Подробнее</div>
                     </div>
                 </div>
@@ -279,14 +282,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateGreeting();
         applySavedToUI();
         try {
-            const res = await fetch(`${API_URL}/listings`);
-            if (res.ok) { allListings = await res.json(); applyFilters(); }    
-        } catch (e) { console.error("Fetch Error:", e); }
+            const headers = { 'Content-Type': 'application/json' };
+            const token = getToken();
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch(`${API_URL}/listings`, { headers });
+            if (res.ok) { 
+                allListings = await res.json(); 
+                applyFilters(); 
+            } else {
+                container.innerHTML = '<div style="text-align:center; padding:60px; color:var(--danger-red);"><p>Ошибка сервера: ' + res.status + '</p></div>';
+            }
+        } catch (e) { 
+            console.error("Fetch Error:", e); 
+            container.innerHTML = '<div style="text-align:center; padding:60px; color:var(--danger-red);"><p>Не удалось подключиться к серверу</p></div>';
+        }
     }
     init();
 
-    const notifSheet = document.getElementById('notification-bottom-sheet');   
-    const notifOverlay = document.getElementById('notif-sheet-overlay');       
+    const notifSheet = document.getElementById('notification-bottom-sheet');
+    const notifOverlay = document.getElementById('notif-sheet-overlay');
     const sheetIcon = document.getElementById('sheet-icon');
     const sheetTitle = document.getElementById('sheet-title');
     const sheetTime = document.getElementById('sheet-time');
@@ -302,13 +317,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         sheetBody.innerText = notif.fullText || notif.desc;
         notifOverlay.classList.add('active');
         setTimeout(() => notifSheet.classList.add('active'), 10);
-        const item = document.querySelector(`.notif-item[data-id="${id}"]`);   
+        const item = document.querySelector(`.notif-item[data-id="${id}"]`);
         if (item) { item.classList.remove('unread'); const dot = item.querySelector('.unread-dot'); if (dot) dot.remove(); }
     };
 
     window.closeNotificationSheet = () => {
         notifSheet.classList.remove('active');
-        setTimeout(() => notifOverlay.classList.remove('active'), 300);        
+        setTimeout(() => notifOverlay.classList.remove('active'), 300);
     };
     if (notifOverlay) notifOverlay.onclick = closeNotificationSheet;
 
@@ -319,24 +334,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderNotificationList() {
         if (!notifContentArea) return;
-        notifContentArea.innerHTML = `<div style="padding:24px 20px 12px; border-bottom:1px solid var(--border-color);"><h4 style="margin:0; font-size:12px; font-weight:900; color:var(--text-light); text-transform:uppercase; letter-spacing:1px;">Сегодня</h4></div>` + 
+        notifContentArea.innerHTML = `<div style="padding:24px 20px 12px; border-bottom:1px solid var(--border-color);"><h4 style="margin:0; font-size:12px; font-weight:900; color:var(--text-light); text-transform:uppercase; letter-spacing:1px;">Сегодня</h4></div>` +
             mockNotifications.map(n => `<div class="notif-item ${n.unread ? 'unread' : ''}" data-id="${n.id}" onclick="openNotificationDetails(${n.id})"><div class="notif-icon-wrap ${n.iconClass}"><i class="${n.icon}"></i></div><div class="notif-content"><div class="notif-item-title"><span>${n.title}</span><span class="notif-time">${n.time}</span></div><p class="notif-desc">${n.desc}</p></div>${n.unread ? '<div class="unread-dot"></div>' : ''}</div>`).join('');
     }
 
     // --- SMART SEARCH (CLEAN & STABLE) ---
     const searchModal = document.getElementById('search-modal');
-    const modalSearchInput = document.getElementById('modal-search-input');    
-    const executeSearchBtn = document.getElementById('execute-search');        
-    const historySection = document.getElementById('search-history-section');  
+    const modalSearchInput = document.getElementById('modal-search-input');
+    const executeSearchBtn = document.getElementById('execute-search');
+    const historySection = document.getElementById('search-history-section');
     const historyList = document.getElementById('history-list');
     const clearHistoryBtn = document.getElementById('clear-history');
-    const closeSearchModalBtn = document.getElementById('close-search-modal'); 
+    const closeSearchModalBtn = document.getElementById('close-search-modal');
     const mainSearchBar = document.querySelector('.search-bar');
     const mainSearchInput = document.getElementById('search-input');
-    const resultsSection = document.getElementById('search-results-section');  
+    const resultsSection = document.getElementById('search-results-section');
     const modalListingsContainer = document.getElementById('modal-listings-container');
-    const modalFilterBtn = document.getElementById('modal-filter-trigger');    
-    const modalLocationBtn = document.getElementById('modal-location-btn');    
+    const modalFilterBtn = document.getElementById('modal-filter-trigger');
+    const modalLocationBtn = document.getElementById('modal-location-btn');
 
     let searchHistory = JSON.parse(localStorage.getItem('search_history') || '[]');
 
@@ -408,8 +423,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const matchesType = l.type === selectedType;
             return l.title.toLowerCase().includes(q) || l.location.toLowerCase().includes(q);
         });
-        modalListingsContainer.innerHTML = filtered.length === 0 ? '<div style="text-align:center; padding:60px; color:var(--text-light);"><p>Ничего не найдено</p></div>' : 
-            filtered.map(item => `<div class="property-card" onclick="window.location.href='details.html?id=${item.id}'"><div class="card-image-wrap"><img src="${item.image}" class="card-img"><button class="fav-btn" onclick="toggleFavorite(event, '${item.id}')"><i class="${favorites.includes(String(item.id)) ? 'fas' : 'far'} fa-heart"></i></button></div><div class="card-info"><h3 class="card-title" style="font-size:16px;">${item.title}</h3><div class="card-loc" style="font-size:12px;"><i class="fas fa-map-marker-alt" style="color:var(--brand-blue)"></i> ${item.location}</div><div class="card-bottom"><div class="card-price" style="font-size:18px;">${(item.price || 0).toLocaleString()} <span>сум</span></div></div></div></div>`).join('');
+        modalListingsContainer.innerHTML = filtered.length === 0 ? '<div style="text-align:center; padding:60px; color:var(--text-light);"><p>Ничего не найдено</p></div>' :
+            filtered.map(item => `<div class="property-card" onclick="window.location.href='details.html?id=${item.id}'"><div class="card-image-wrap"><img src="${item.image}" class="card-img" onerror="this.src='https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80'"><button class="fav-btn" onclick="toggleFavorite(event, '${item.id}')"><i class="${favorites.includes(String(item.id)) ? 'fas' : 'far'} fa-heart"></i></button></div><div class="card-info"><h3 class="card-title" style="font-size:16px;">${item.title}</h3><div class="card-loc" style="font-size:12px;"><i class="fas fa-map-marker-alt" style="color:var(--brand-blue)"></i> ${item.location}</div><div class="card-bottom"><div class="card-price" style="font-size:18px;">${(item.price || 0).toLocaleString()} <span>сум</span></div></div></div></div>`).join('');
     }
 
     if (modalFilterBtn) modalFilterBtn.onclick = () => { if (filterBtn) filterBtn.click(); };
