@@ -41,7 +41,7 @@
 
         .avatar-edit-wrap { position: relative; width: 110px; height: 110px; margin: 0 auto 30px; cursor: pointer; }
         .avatar-edit-img { width: 100%; height: 100%; border-radius: 35px; object-fit: cover; background: var(--soft-gray); padding: 4px; border: 1px solid #eee; }
-        .camera-overlay { position: absolute; bottom: -5px; right: -5px; width: 34px; height: 34px; background: var(--brand-blue); color: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 3px solid white; font-size: 13px; }
+        .camera-overlay { position: absolute; bottom: -5px; right: -5px; width: 34px; height: 34px; background: var(--brand-blue); color: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 3px solid white; font-size: 13px; pointer-events: none; }
 
         .input-group { margin-bottom: 25px; }
         .input-group label { display: block; font-weight: 800; font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; padding-left: 5px; }
@@ -93,7 +93,8 @@
         <div class="card">
             <!-- AVATAR -->
             <div class="avatar-edit-wrap" id="avatar-picker-trigger">
-                <img id="edit-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" class="avatar-edit-img">
+                <!-- Removed hardcoded unsplash src to prevent flicker -->
+                <img id="edit-avatar" src="" class="avatar-edit-img" alt="Avatar">
                 <div class="camera-overlay"><i class="fas fa-camera"></i></div>
             </div>
 
