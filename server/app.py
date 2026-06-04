@@ -5,10 +5,12 @@ import bcrypt
 import string
 import logging
 import json
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, HTTPException, Request, Header, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request, Header, BackgroundTasks, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import resend
 from databases import Database
 from sqlalchemy import create_engine, MetaData, Table, Column, String, Boolean, DateTime, Float, Integer, text
@@ -21,12 +23,17 @@ logger = logging.getLogger(__name__)
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1) # Standardize
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 elif not DATABASE_URL:
     DATABASE_URL = "sqlite+aiosqlite:///./database.sqlite"
 
 database = Database(DATABASE_URL)
 metadata = MetaData()
+
+# Create storage directory for uploads
+UPLOAD_DIR = "storage/avatars"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Temporary SMS storage (In-memory)
 sms_codes = {} # { phone: {"code": "...", "expires": ...} }
@@ -94,6 +101,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve static files for avatars
+app.mount("/storage", StaticFiles(directory="storage"), name="storage")
 
 @app.on_event("startup")
 async def startup():
@@ -176,10 +186,24 @@ async def register(request: Request, background_tasks: BackgroundTasks):
         if existing and existing['verified']: raise HTTPException(status_code=400, detail="Этот Email уже занят")
         hashed_pass = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         otp_code, expire_time = str(random.randint(100000, 999999)), datetime.utcnow() + timedelta(minutes=10)
+        
+        # Generate initial avatar using DiceBear
+        initial_avatar = f"https://api.dicebear.com/7.x/avataaars/svg?seed={email}"
+
         if existing:
             await database.execute(users_table.update().where(users_table.c.email == email).values(name=name, password=hashed_pass, otp=otp_code, expire=expire_time))
         else:
-            await database.execute(users_table.insert().values(id=f"#DGID{''.join(random.choices(string.digits, k=5))}{random.choice(string.ascii_uppercase)}", email=email, name=name, password=hashed_pass, otp=otp_code, expire=expire_time, verified=False, created_at=datetime.utcnow()))
+            await database.execute(users_table.insert().values(
+                id=f"#DGID{''.join(random.choices(string.digits, k=5))}{random.choice(string.ascii_uppercase)}", 
+                email=email, 
+                name=name, 
+                password=hashed_pass, 
+                otp=otp_code, 
+                expire=expire_time, 
+                avatar_url=initial_avatar,
+                verified=False, 
+                created_at=datetime.utcnow()
+            ))
         background_tasks.add_task(send_otp_email, email, name, otp_code)       
         return {"status": "success", "message": "Код подтверждения отправлен на почту"}
     except Exception as e:
@@ -201,7 +225,7 @@ async def verify_email(request: Request):
         if user["otp"] != str(code) or current_time > user_expire: return {"status": "error", "message": "Код не найден. Запросите новый."}
         await database.execute(users_table.update().where(users_table.c.email == email).values(verified=True, otp=None))
         token = jwt.encode({"sub": user['id'], "exp": datetime.utcnow() + timedelta(days=7)}, SECRET_KEY, algorithm="HS256")
-        return {"status": "success", "message": "Почта успешно подтверждена", "token": token, "user": {"id": user['id'], "name": user['name'], "email": user['email']}}
+        return {"status": "success", "message": "Почта успешно подтверждена", "token": token, "user": {"id": user['id'], "name": user['name'], "email": user['email'], "avatar_url": user['avatar_url']}}
     except Exception as e:
         logger.error(f"VERIFY ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -218,7 +242,7 @@ async def login(request: Request):
         if not user or not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')): raise HTTPException(status_code=401, detail="Неверный логин или пароль")
         if not user['verified']: raise HTTPException(status_code=403, detail="Email не подтвержден")
         token = jwt.encode({"sub": user['id'], "exp": datetime.utcnow() + timedelta(days=7)}, SECRET_KEY, algorithm="HS256")
-        return {"access_token": token, "token_type": "bearer", "user": {"id": user['id'], "name": user['name'], "email": user['email']}}
+        return {"access_token": token, "token_type": "bearer", "user": {"id": user['id'], "name": user['name'], "email": user['email'], "avatar_url": user['avatar_url']}}
     except Exception as e:
         logger.error(f"LOGIN ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -242,6 +266,28 @@ async def update_user(request: Request, authorization: Optional[str] = Header(No
     user = await database.fetch_one(users_table.select().where(users_table.c.id == user_id))
     return dict(user)
 
+@app.post("/api/v1/users/upload-avatar")
+async def upload_avatar(file: UploadFile = File(...), authorization: Optional[str] = Header(None)):
+    user_id = await get_current_user_id(authorization)
+    
+    # Validate file extension
+    ext = file.filename.split(".")[-1].lower()
+    if ext not in ["jpg", "jpeg", "png", "webp"]:
+        raise HTTPException(status_code=400, detail="Invalid image format")
+    
+    filename = f"{uuid.uuid4()}.{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    
+    with open(filepath, "wb") as buffer:
+        buffer.write(await file.read())
+    
+    # Construct URL (relative for simplicity, ideally absolute with domain)
+    avatar_url = f"/storage/avatars/{filename}"
+    
+    await database.execute(users_table.update().where(users_table.c.id == user_id).values(avatar_url=avatar_url))
+    
+    return {"status": "success", "avatar_url": avatar_url}
+
 @app.post("/api/v1/auth/send-sms-verification")
 async def send_sms_verification(request: Request, authorization: Optional[str] = Header(None)):
     await get_current_user_id(authorization) # Ensure user is logged in
@@ -254,7 +300,6 @@ async def send_sms_verification(request: Request, authorization: Optional[str] =
     sms_codes[phone] = {"code": code, "expires": expires}
     
     logger.info(f"DEBUG: SMS CODE FOR {phone} IS {code}")
-    # Here you would call your SMS gateway API
     return {"status": "success", "message": "SMS code sent"}
 
 @app.post("/api/v1/auth/verify-sms-and-book")
@@ -269,10 +314,8 @@ async def verify_sms_and_book(request: Request, authorization: Optional[str] = H
     if not stored or stored["code"] != code or datetime.utcnow() > stored["expires"]:
         raise HTTPException(status_code=400, detail="Invalid or expired code")
     
-    # 1. Update user phone
     await database.execute(users_table.update().where(users_table.c.id == user_id).values(phone=phone))
     
-    # 2. Create booking
     await database.execute(bookings_table.insert().values(
         user_id=user_id,
         listing_id=str(listing_id),
@@ -281,7 +324,6 @@ async def verify_sms_and_book(request: Request, authorization: Optional[str] = H
         created_at=datetime.utcnow()
     ))
     
-    # Cleanup code
     if phone in sms_codes: del sms_codes[phone]
     
     return {"status": "success", "message": "Phone verified and booking created"}
