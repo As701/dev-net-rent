@@ -52,6 +52,7 @@ SECRET_KEY = "DACHAGO_ULTRA_SECURE_PRODUCTION_KEY_2026_LONG_AND_UNIQUE"
 
 app = FastAPI()
 
+
 @app.on_event("startup")
 async def startup():
     await database.connect()
@@ -59,7 +60,14 @@ async def startup():
     if "postgresql" in db_url and "+psycopg2" not in db_url:
         db_url = db_url.replace("postgresql://", "postgresql+psycopg2://")
     engine = create_engine(db_url)
+    
+    # FORCE REFRESH: If we are in production and need to fix schema
+    if os.environ.get("REFRESH_DB") == "true":
+        print("REFRESHING DATABASE TABLES...")
+        metadata.drop_all(engine)
+        
     metadata.create_all(engine)
+
 
 @app.on_event("shutdown")
 async def shutdown():
