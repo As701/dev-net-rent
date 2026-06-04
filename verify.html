@@ -3,154 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Подтверждение Email - DachaGo</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <title>Подтверждение кода — DachaGo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --primary-blue: #2599C8;
-            --brand-color: #2b96cd;
-            --soft-gray: #F7F9FC;
-            --text-dark: #1A1D1E;
-            --text-light: #9BA5B7;
-            --border-color: #F0F3F6;
+        /* Общие аккуратные стили страницы */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #FFFFFF;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
-        body { font-family: 'Inter', sans-serif; background: white; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .container { max-width: 400px; width: 100%; padding: 30px; text-align: center; }
-        h1 { font-weight: 800; font-size: 24px; margin-bottom: 10px; }
-        p { color: var(--text-light); font-size: 14px; margin-bottom: 30px; }
-        
-        /* ЧАСТЬ 2: Стили для аккуратных инпутов */
+
+        .verify-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #94A3B8;
+            margin-bottom: 24px;
+            line-height: 1.4;
+        }
+
+        #user-email {
+            color: #1E293B;
+            font-weight: 600;
+        }
+
+        /* НАСТРОЙКА ИЗ ТЗ: Контейнер для 6 отдельных квадратиков */
         .code-container {
             display: flex;
             justify-content: center;
-            gap: 10px; /* Расстояние между квадратиками */
-            margin-top: 20px;
-            margin-bottom: 25px;
+            gap: 10px; /* Расстояние между ячейками */
+            margin: 24px 0;
             width: 100%;
         }
 
+        /* НАСТРОЙКА ИЗ ТЗ: Маленькие аккуратные квадраты, как раньше */
         .code-input {
-            width: 45px !important;  /* Жестко задаем ширину */
-            height: 45px !important; /* Жестко задаем высоту */
+            width: 45px !important;
+            height: 45px !important;
             text-align: center;
             font-size: 20px;
-            font-weight: bold;
+            font-weight: 700;
             border: 1px solid #E2E8F0;
-            border-radius: 12px;     /* Скругление как на макете */
+            border-radius: 12px;
             background-color: #F8FAFC;
             color: #1E293B;
             outline: none;
+            padding: 0 !important;
+            box-sizing: border-box;
             transition: all 0.2s ease;
-            padding: 0 !important;   /* Сбрасываем внутренние отступы */
         }
 
         .code-input:focus {
-            border-color: #3B82F6;   /* Синяя рамка при фокусе */
+            border-color: #3B82F6;
             background-color: #FFFFFF;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .submit-btn { width: 100%; background: var(--primary-blue); color: white; border: none; padding: 18px; border-radius: 20px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; }
-        .submit-btn:disabled { opacity: 0.5; }
-        .resend-box { margin-top: 25px; font-size: 14px; }
-        .resend-link { color: var(--brand-color); font-weight: 700; text-decoration: none; }
-        .resend-link.disabled { color: var(--text-light); pointer-events: none; }
+        /* Стиль кнопки отправки */
+        .btn-submit {
+            width: 100%;
+            background-color: #4FA0C8;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .btn-submit:disabled {
+            background-color: #CBD5E1;
+            cursor: not-allowed;
+        }
+
+        .timer-text {
+            font-size: 14px;
+            color: #64748B;
+        }
+
+        .resend-link {
+            color: #4FA0C8;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .resend-link.disabled {
+            color: #94A3B8;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Введите код</h1>
-        <p>Мы отправили 6-значный код на почту <br><strong id="user-email" style="color: var(--text-dark);"></strong></p>
-        
-        <!-- ЧАСТЬ 2: HTML-структура контейнера -->
-        <div class="code-container">
-            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
-            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
-            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
-            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
-            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
-            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
+
+    <div class="verify-container">
+        <h2>Введите код</h2>
+        <div class="subtitle">
+            Мы отправили 6-значный код на почту<br>
+            <span id="user-email">loading...</span>
         </div>
 
-        <button class="submit-btn" id="btn-verify">Подтвердить</button>
+        <div class="code-container">
+            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+        </div>
 
-        <div class="resend-box">
-            <span id="timer-text">Отправить повторно через 00:59</span>
-            <a href="#" id="resend-link" class="resend-link disabled">Отправить код повторно</a>
+        <button id="btn-verify" class="btn-submit" disabled>Подтвердить</button>
+
+        <div class="timer-text">
+            Отправить повторно через <span id="timer-count">00:59</span> 
+            <span id="resend-btn" class="resend-link disabled" style="display:none;">Отправить код повторно</span>
         </div>
     </div>
-    <script src="config.js"></script>
+
     <script>
-        const API_URL = window.DachaGoConfig?.apiUrl || 'https://dachago-server.onrender.com/api/v1';
-        const urlParams = new URLSearchParams(window.location.search);
-        const email = urlParams.get('email');
-        document.getElementById('user-email').innerText = email;
+        (function() {
+            // Конфигурация API (подтягиваем твой текущий рабочий Render URL)
+            const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
+            
+            // Получаем email из строки браузера (?email=user@gmail.com)
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email') || '';
+            document.getElementById('user-email').innerText = email;
 
-        const fields = document.querySelectorAll('.code-input');
-        fields.forEach((f, i) => {
-            f.addEventListener('input', () => {
-                f.value = f.value.replace(/\D/g, '');
-                if (f.value && i < fields.length - 1) fields[i+1].focus();
-            });
-            f.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && !f.value && i > 0) fields[i-1].focus();
-            });
-        });
+            const inputs = document.querySelectorAll('.code-input');
+            const verifyBtn = document.getElementById('btn-verify');
 
-        document.getElementById('btn-verify').addEventListener('click', async () => {
-            const code = Array.from(fields).map(f => f.value).join('');
-            if (code.length < 6) return;
-
-            try {
-                const res = await fetch(`${API_URL}/auth/verify-email`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, code })
+            // Автоматическое переключение между ячейками при вводе
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', (e) => {
+                    // Разрешаем только цифры
+                    input.value = input.value.replace(/[^0-9]/g, '');
+                    
+                    if (input.value.length > 0 && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                    checkFullCode();
                 });
-                const result = await res.json();
-                
-                // ЧАСТЬ 1: Исправленная логика обработки ответа
-                if (res.ok && result.status === "success") {
-                    // 1. Сохраняем JWT-токен
-                    if (result.token) {
-                        localStorage.setItem("token", result.token);
+
+                // Возврат назад при нажатии Backspace
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && input.value.length === 0 && index > 0) {
+                        inputs[index - 1].focus();
                     }
+                });
+            });
 
-                    // 2. Сохраняем данные пользователя
-                    if (result.user) {
-                        localStorage.setItem("user_name", result.user.name || "");
-                        localStorage.setItem("user_id", result.user.id || "");
-                    }
-
-                    alert("Регистрация успешно завершена!");
-
-                    // 3. Перенаправляем авторизованным
-                    window.location.href = "profile.html"; 
-                } else {
-                    alert(result.message || result.detail || "Ошибка верификации");
-                }
-            } catch (e) { alert('Ошибка сети'); }
-        });
-
-        let sec = 59;
-        const timerText = document.getElementById('timer-text');
-        const resendLink = document.getElementById('resend-link');
-        const itv = setInterval(() => {
-            sec--;
-            timerText.innerText = `Отправить повторно через 00:${sec < 10 ? '0'+sec : sec}`;
-            if (sec <= 0) {
-                clearInterval(itv);
-                timerText.style.display = 'none';
-                resendLink.classList.remove('disabled');
+            function checkFullCode() {
+                const fullCode = Array.from(inputs).map(i => i.value).join('');
+                verifyBtn.disabled = (fullCode.length !== 6);
             }
-        }, 1000);
 
-        resendLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            alert('Запрос на повторную отправку...');
-            window.location.reload();
-        });
+            // НАСТРОЙКА ИЗ ТЗ: Обработка подтверждения и АВТО-ВХОД
+            verifyBtn.addEventListener('click', async () => {
+                const code = Array.from(inputs).map(i => i.value).join('');
+                verifyBtn.disabled = true;
+                verifyBtn.innerText = 'Проверка...';
+
+                try {
+                    const response = await fetch(`${API_URL}/auth/verify-email`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: email, code: code })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.status === "success") {
+                        // ЖЕЛЕЗНО сохраняем токен авторизации и данные юзера в память
+                        if (data.token) {
+                            localStorage.setItem('token', data.token);
+                        }
+                        if (data.user) {
+                            localStorage.setItem('user', JSON.stringify(data.user));
+                        }
+
+                        alert("Регистрация успешно завершена! Вход выполнен.");
+                        
+                        // Отправляем пользователя сразу на главную страницу уже авторизованным
+                        window.location.href = 'index.html';
+                    } else {
+                        alert(data.message || data.detail || 'Неверный код или срок его действия истёк.');
+                        verifyBtn.disabled = false;
+                        verifyBtn.innerText = 'Подтвердить';
+                    }
+                } catch (err) {
+                    alert('Ошибка сети при верификации');
+                    verifyBtn.disabled = false;
+                    verifyBtn.innerText = 'Подтвердить';
+                }
+            });
+
+            // Простейший таймер для повторной отправки кодов
+            let timeLeft = 59;
+            const timerCount = document.getElementById('timer-count');
+            const resendBtn = document.getElementById('resend-btn');
+            
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                timerCount.innerText = `00:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerCount.parentElement.style.display = 'none';
+                    resendBtn.style.display = 'inline';
+                    resendBtn.classList.remove('disabled');
+                }
+            }, 1000);
+        })();
     </script>
 </body>
 </html>
