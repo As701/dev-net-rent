@@ -1,11 +1,9 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const listingId = urlParams.get('id');
+    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
 
-    if (!listingId) {
-        window.location.href = 'index.html';
-        return;
-    }
+    if (!listingId) { window.location.href = 'index.html'; return; }
 
     const elements = {
         loading: document.getElementById('loading-overlay'),
@@ -22,194 +20,155 @@ document.addEventListener('DOMContentLoaded', async () => {
         description: document.getElementById('listing-description'),
         ownerName: document.getElementById('owner-name'),
         favBtn: document.getElementById('fav-detail-btn'),
-        chatBtn: document.getElementById('chat-action-btn'),
-        bookBtn: document.getElementById('book-action-btn')
+        bookBtn: document.getElementById('book-action-btn'),
+        // Modal Elements
+        modal: document.getElementById('sms-verification-modal'),
+        stepPhone: document.getElementById('modal-step-phone'),
+        stepCode: document.getElementById('modal-step-code'),
+        phoneInput: document.getElementById('booking-phone-input'),
+        confirmPhoneLabel: document.getElementById('confirm-phone-label'),
+        btnGetCode: document.getElementById('btn-get-code'),
+        btnVerifyBook: document.getElementById('btn-verify-book'),
+        closeModal: document.getElementById('close-modal-btn'),
+        backToPhone: document.getElementById('back-to-phone-btn'),
+        otpBoxes: document.querySelectorAll('.otp-box')
     };
 
-    // Robust mapping for both IDs and Russian names from create.html
     const amenityIcons = {
         'pool': { icon: 'fa-swimming-pool', label: 'Бассейн' },
-        'Бассейн': { icon: 'fa-swimming-pool', label: 'Бассейн' },
-
+        'БАССЕЙН': { icon: 'fa-swimming-pool', label: 'Бассейн' },
         'sauna': { icon: 'fa-hot-tub', label: 'Сауна/Баня' },
-        'Сауна/Баня': { icon: 'fa-hot-tub', label: 'Сауна/Баня' },
-        'Sauna': { icon: 'fa-hot-tub', label: 'Сауна/Баня' },
-
+        'САУНА': { icon: 'fa-hot-tub', label: 'Сауна/Баня' },
         'wifi': { icon: 'fa-wifi', label: 'Wi-Fi' },
-        'Wi-Fi': { icon: 'fa-wifi', label: 'Wi-Fi' },
-
         'ac': { icon: 'fa-snowflake', label: 'Конд-р' },
-        'Конд-р': { icon: 'fa-snowflake', label: 'Конд-р' },
-        'Кондиционер': { icon: 'fa-snowflake', label: 'Конд-р' },
-
-        'tv': { icon: 'fa-tv', label: 'ТВ' },
-        'ТВ': { icon: 'fa-tv', label: 'ТВ' },
-
         'kitchen': { icon: 'fa-utensils', label: 'Кухня' },
-        'Кухня': { icon: 'fa-utensils', label: 'Кухня' },
-
-        'wash': { icon: 'fa-soap', label: 'Стирка' },
-        'Стирка': { icon: 'fa-soap', label: 'Стирка' },
-
-        'grill': { icon: 'fa-fire', label: 'Мангал' },
-        'Мангал': { icon: 'fa-fire', label: 'Мангал' },
-
-        'billiards': { icon: 'fa-circle', label: 'Бильярд' },
-        'Бильярд': { icon: 'fa-circle', label: 'Бильярд' },
-
-        'tennis': { icon: 'fa-table-tennis-paddle-ball', label: 'Теннис' },
-        'Теннис': { icon: 'fa-table-tennis-paddle-ball', label: 'Теннис' },
-
-        'karaoke': { icon: 'fa-microphone', label: 'Караоке' },
-        'Караоке': { icon: 'fa-microphone', label: 'Караоке' },
-
-        'ps': { icon: 'fa-gamepad', label: 'Play Station' },
-        'Play Station': { icon: 'fa-gamepad', label: 'Play Station' },
-
-        'bowling': { icon: 'fa-bowling-ball', label: 'Боулинг' },
-        'Боулинг': { icon: 'fa-bowling-ball', label: 'Боулинг' },
-
-        'cinema': { icon: 'fa-film', label: 'Кино' },
-        'Кино': { icon: 'fa-film', label: 'Кино' }
+        'karaoke': { icon: 'fa-microphone', label: 'Караоке' }
     };
 
     function renderAmenities(amenitiesJson) {
         if (!elements.amenities) return;
-
         let list = [];
-        try {
-            if (typeof amenitiesJson === 'string') {
-                if (amenitiesJson.startsWith('[') || amenitiesJson.startsWith('{')) {
-                    list = JSON.parse(amenitiesJson);
-                } else {
-                    list = amenitiesJson.split(',').map(s => s.trim());
-                }
-            } else {
-                list = amenitiesJson || [];
-            }
-        } catch(e) { list = []; }
-
-        if (!list || list.length === 0) {
-            elements.amenities.innerHTML = '<p style="color:var(--text-light); font-size:12px;">Удобства не указаны</p>';
-            return;
-        }
-
+        try { list = (typeof amenitiesJson === 'string') ? JSON.parse(amenitiesJson) : (amenitiesJson || []); } catch(e) { list = []; }
+        if (!list.length) { elements.amenities.innerHTML = '<p>Удобства не указаны</p>'; return; }
         elements.amenities.innerHTML = list.map(id => {
-            const info = amenityIcons[id] || { icon: 'fa-check-circle', label: id };
-            return `
-                <div class="amenity-item active">
-                    <i class="fas ${info.icon}"></i>
-                    <span>${info.label}</span>
-                    <div class="check-badge">✓</div>
-                </div>
-            `;
+            const info = amenityIcons[id.toLowerCase()] || { icon: 'fa-check-circle', label: id };
+            return `<div class="amenity-item active"><i class="fas ${info.icon}"></i><span>${info.label}</span><div class="check-badge">✓</div></div>`;
         }).join('');
     }
 
-    try {
-        const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
-        const headers = { 'Content-Type': 'application/json' };
-        const token = localStorage.getItem('token');
-        if (token) headers['Authorization'] = `Bearer ${token}`;
+    async function loadData() {
+        try {
+            const token = localStorage.getItem('token');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch(`${API_URL}/listings`, { headers });
+            const listings = await res.json();
+            const item = listings.find(l => String(l.id) === String(listingId));
+            if (!item) { window.location.href = 'index.html'; return; }
 
-        const response = await fetch(`${API_URL}/listings`, { headers });
-        if (!response.ok) throw new Error('Failed to fetch');
-        
-        const listings = await response.json();
-        const item = listings.find(l => String(l.id) === String(listingId));
-
-        if (!item) {
-            alert('Объявление не найдено');
-            window.location.href = 'index.html';
-            return;
-        }
-
-        // POPULATE UI
-        if (elements.galleryImg) {
-            elements.galleryImg.src = item.image || 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80';
-            elements.galleryImg.onerror = function() {
-                this.src = 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80';
-            };
-        }
-        if (elements.title) elements.title.innerText = item.title || 'Без названия';
-        if (elements.location) elements.location.innerText = item.location || 'Местоположение не указано';
-        if (elements.id) elements.id.innerText = `ID: DG-${item.id.toString().padStart(3, '0')}`;
-
-        const priceFormatted = (item.price || 0).toLocaleString();
-        if (elements.price) {
-            if (item.type === 'sale') {
-                elements.price.innerHTML = `${priceFormatted} сум <span>всего</span>`;
-                if (elements.bookBtn) elements.bookBtn.innerText = 'Купить объект';
-            } else {
-                elements.price.innerHTML = `${priceFormatted} сум <span>/сутки</span>`;
-                if (elements.bookBtn) elements.bookBtn.innerText = 'Забронировать';
-            }
-        }
-
-        if (elements.beds) elements.beds.innerText = item.rooms || '-';
-        if (elements.baths) elements.baths.innerText = item.bathrooms || '1';
-        if (elements.area) elements.area.innerText = item.area || '-';
-        if (elements.capacity) elements.capacity.innerText = item.capacity || '-';
-        if (elements.description) elements.description.innerText = item.description || 'Описание не предоставлено.';
-
-        renderAmenities(item.amenities);
-
-        if (elements.ownerName) elements.ownerName.innerText = item.owner_name || 'Владелец';
-
-        // Favorite State
-        let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-        if (elements.favBtn) {
-            if (favorites.includes(String(item.id))) {
-                elements.favBtn.classList.add('active');
-                elements.favBtn.querySelector('i').className = 'fas fa-heart';
-            }
-
-            elements.favBtn.onclick = () => {
-                const strId = String(item.id);
-                const index = favorites.indexOf(strId);
-                if (index > -1) {
-                    favorites.splice(index, 1);
-                    elements.favBtn.classList.remove('active');
-                    elements.favBtn.querySelector('i').className = 'far fa-heart';
-                } else {
-                    favorites.push(strId);
-                    elements.favBtn.classList.add('active');
-                    elements.favBtn.querySelector('i').className = 'fas fa-heart';
-                }
-                localStorage.setItem('favorites', JSON.stringify(favorites));
-            };
-        }
-
-        if (elements.chatBtn) {
-            elements.chatBtn.onclick = (e) => {
-                const user = localStorage.getItem('user');
-                if (!user) {
-                    e.preventDefault();
-                    alert('Пожалуйста, войдите в аккаунт, чтобы воспользоваться этой функцией.');
-                    window.location.href = 'auth.html';
-                } else {
-                    window.location.href = `messages.html?chat_id=${item.id}`;
-                }
-            };
-        }
-
-        if (elements.bookBtn) {
-            elements.bookBtn.onclick = (e) => {
-                const user = localStorage.getItem('user');
-                if (!user) {
-                    e.preventDefault();
-                    alert('Пожалуйста, войдите в аккаунт, чтобы забронировать объект.');
-                    window.location.href = 'auth.html';
-                } else {
-                    alert('Функция бронирования скоро будет доступна!');
-                }
-            };
-        }
-
-    } catch (error) {
-        console.error('Error loading details:', error);
-        alert('Ошибка при загрузке данных. Проверьте интернет-соединение.');
-    } finally {
-        if (elements.loading) elements.loading.style.display = 'none';
+            elements.galleryImg.src = item.image || '';
+            elements.title.innerText = item.title;
+            elements.location.innerText = item.location;
+            elements.id.innerText = `ID: DG-${item.id}`;
+            elements.price.innerHTML = `${item.price.toLocaleString()} сум <span>/сутки</span>`;
+            elements.beds.innerText = item.rooms || '-';
+            elements.baths.innerText = item.bathrooms || '1';
+            elements.area.innerText = item.area || '-';
+            elements.capacity.innerText = item.capacity || '-';
+            elements.description.innerText = item.description || '';
+            renderAmenities(item.amenities);
+            elements.ownerName.innerText = item.owner_name || 'Владелец';
+        } catch (e) { console.error(e); } finally { elements.loading.style.display = 'none'; }
     }
+
+    // --- BOOKING LOGIC (LAZY VERIFICATION) ---
+    if (elements.bookBtn) {
+        elements.bookBtn.onclick = (e) => {
+            e.preventDefault();
+            const userRaw = localStorage.getItem('user');
+            if (!userRaw) { alert('Пожалуйста, войдите в аккаунт'); window.location.href = 'auth.html'; return; }
+            
+            const user = JSON.parse(userRaw);
+            
+            // Ветка 1: Телефон уже есть
+            if (user.phone) {
+                confirmBooking();
+            } else {
+                // Ветка 2: Телефона нет -> Показываем модалку
+                elements.modal.style.display = 'flex';
+            }
+        };
+    }
+
+    // Step 1: Send SMS
+    elements.btnGetCode.onclick = async () => {
+        const phone = elements.phoneInput.value.trim();
+        if (phone.length < 9) { alert('Введите корректный номер'); return; }
+        
+        elements.btnGetCode.disabled = true;
+        elements.btnGetCode.innerText = 'Отправка...';
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/auth/send-sms-verification`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ phone })
+            });
+
+            if (res.ok) {
+                elements.confirmPhoneLabel.innerText = phone;
+                elements.stepPhone.style.display = 'none';
+                elements.stepCode.style.display = 'block';
+            } else {
+                alert('Ошибка при отправке СМС');
+            }
+        } catch (err) { alert('Ошибка сети'); } finally { elements.btnGetCode.disabled = false; elements.btnGetCode.innerText = 'Получить код'; }
+    };
+
+    // Step 2: Verify and Book
+    elements.btnVerifyBook.onclick = async () => {
+        const code = Array.from(elements.otpBoxes).map(b => b.value).join('');
+        if (code.length < 4) return;
+
+        elements.btnVerifyBook.disabled = true;
+        elements.btnVerifyBook.innerText = 'Проверка...';
+
+        try {
+            const token = localStorage.getItem('token');
+            const phone = elements.phoneInput.value.trim();
+            const res = await fetch(`${API_URL}/auth/verify-sms-and-book`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ phone, code, listing_id: listingId, dates: ["2024-07-01"] }) // Simplified dates for TZ
+            });
+
+            if (res.ok) {
+                // Update local user data
+                const user = JSON.parse(localStorage.getItem('user'));
+                user.phone = phone;
+                localStorage.setItem('user', JSON.stringify(user));
+
+                alert('Номер подтвержден! Заявка на бронирование отправлена на модерацию.');
+                elements.modal.style.display = 'none';
+            } else {
+                alert('Неверный код подтверждения');
+            }
+        } catch (err) { alert('Ошибка сети'); } finally { elements.btnVerifyBook.disabled = false; elements.btnVerifyBook.innerText = 'Подтвердить и забронировать'; }
+    };
+
+    async function confirmBooking() {
+        alert('Заявка отправлена на модерацию!');
+        // Here you would call a regular booking endpoint if needed
+    }
+
+    // OTP Boxes focus logic
+    elements.otpBoxes.forEach((box, i) => {
+        box.oninput = () => { if (box.value && i < 3) elements.otpBoxes[i+1].focus(); };
+        box.onkeydown = (e) => { if (e.key === 'Backspace' && !box.value && i > 0) elements.otpBoxes[i-1].focus(); };
+    });
+
+    elements.closeModal.onclick = () => elements.modal.style.display = 'none';
+    elements.backToPhone.onclick = () => { elements.stepCode.style.display = 'none'; elements.stepPhone.style.display = 'block'; };
+
+    loadData();
 });

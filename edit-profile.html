@@ -14,81 +14,70 @@
             --text-light: #9BA5B7;
             --white: #FFFFFF;
             --danger: #FF3B30;
+            --success: #28C76F;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Inter', sans-serif; background-color: var(--soft-gray); margin: 0; padding-bottom: 40px; color: var(--text-dark); -webkit-font-smoothing: antialiased; }
-        
-        .header { 
-            background: var(--white); 
-            padding: 50px 24px 25px; 
-            border-radius: 0 0 35px 35px; 
-            display: flex; 
-            align-items: center; 
+
+        .header {
+            background: var(--white);
+            padding: 50px 24px 25px;
+            border-radius: 0 0 35px 35px;
+            display: flex;
+            align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.02); 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
             position: sticky;
             top: 0;
             z-index: 100;
         }
-        .header-left { display: flex; align-items: center; gap: 20px; }
-        .back-btn { width: 45px; height: 45px; background: var(--soft-gray); border-radius: 15px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; font-size: 18px; color: var(--text-dark); }
-        .header-title { font-weight: 900; font-size: 20px; margin: 0; }
+        .header-left { display: flex; align-items: center; gap: 20px; }        
+        .back-btn { width: 45px; height: 45px; background: var(--soft-gray); border-radius: 15px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; font-size: 18px; color: var(--text-dark); }    
+        .header-title { font-weight: 900; font-size: 20px; margin: 0; }        
         .cancel-link { font-size: 14px; font-weight: 700; color: var(--text-light); text-decoration: none; }
 
         .form-container { padding: 25px 24px; }
         .card { background: var(--white); border-radius: 35px; padding: 30px 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.03); border: 1px solid #F0F3F6; margin-bottom: 20px; }
-        
+
         .avatar-edit-wrap { position: relative; width: 110px; height: 110px; margin: 0 auto 30px; cursor: pointer; }
         .avatar-edit-img { width: 100%; height: 100%; border-radius: 35px; object-fit: cover; background: var(--soft-gray); padding: 4px; border: 1px solid #eee; }
         .camera-overlay { position: absolute; bottom: -5px; right: -5px; width: 34px; height: 34px; background: var(--brand-blue); color: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 3px solid white; font-size: 13px; }
 
         .input-group { margin-bottom: 25px; }
         .input-group label { display: block; font-weight: 800; font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; padding-left: 5px; }
-        .input-group input, .input-group textarea { 
-            width: 100%; 
-            background: #F8FAFC; 
-            border: 1.5px solid #E2E8F0; 
-            padding: 16px 20px; 
-            border-radius: 18px; 
-            font-family: inherit; 
-            font-size: 15px; 
-            font-weight: 600; 
-            outline: none; 
-            transition: 0.3s; 
-            box-sizing: border-box; 
-        }
-        .input-group input:focus, .input-group textarea:focus { 
-            background: white; 
-            border-color: var(--brand-blue); 
-            box-shadow: 0 10px 20px rgba(37, 153, 200, 0.05); 
-        }
-        
-        /* READ ONLY STYLE */
-        .input-readonly { background: #F1F5F9 !important; color: #64748B !important; border: 1.5px solid transparent !important; }
-
-        .phone-display-box {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .input-group input, .input-group textarea {
+            width: 100%;
             background: #F8FAFC;
+            border: 1.5px solid #E2E8F0;
             padding: 16px 20px;
             border-radius: 18px;
-            border: 1px solid #E2E8F0;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 600;
+            outline: none;
+            transition: 0.3s;
+            box-sizing: border-box;
         }
-        .current-phone { font-weight: 700; font-size: 16px; color: var(--text-dark); }
-        .change-phone-btn { color: var(--brand-blue); font-weight: 800; font-size: 13px; cursor: pointer; text-transform: uppercase; }
+        .input-group input:focus, .input-group textarea:focus {
+            background: white;
+            border-color: var(--brand-blue);
+            box-shadow: 0 10px 20px rgba(37, 153, 200, 0.05);
+        }
 
-        .save-btn { width: 100%; background: var(--brand-blue); color: white; border: none; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 15px; letter-spacing: 0.5px; cursor: pointer; margin-top: 10px; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.3); }
-
-        /* MODALS */
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .sms-modal { background: white; border-radius: 35px; width: 100%; max-width: 400px; padding: 35px 25px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
-        .sms-title { font-weight: 900; font-size: 20px; margin-bottom: 10px; }
-        .sms-desc { color: var(--text-light); font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
-        .sms-input { text-align: center; letter-spacing: 10px; font-size: 24px; font-weight: 900; border-bottom: 2.5px solid var(--brand-blue) !important; border-radius: 0 !important; background: transparent !important; border-top: none !important; border-left: none !important; border-right: none !important; }
-        .sms-timer { font-size: 12px; color: var(--text-light); font-weight: 700; margin-top: 20px; }
+        .input-readonly { background: #F1F5F9 !important; color: #64748B !important; border: 1.5px solid transparent !important; cursor: not-allowed; }
         
-        .btn-ghost { background: transparent; color: var(--text-light); border: none; padding: 10px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .badge-verified {
+            display: none;
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--success);
+            text-transform: uppercase;
+            margin-left: 8px;
+        }
+        .badge-verified.active { display: inline; }
+
+        .save-btn { width: 100%; background: var(--brand-blue); color: white; border: none; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 15px; letter-spacing: 0.5px; cursor: pointer; margin-top: 10px; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.3); transition: 0.3s; }
+        .save-btn:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
@@ -97,14 +86,14 @@
             <button class="back-btn" id="back-trigger"><i class="fas fa-chevron-left"></i></button>
             <h2 class="header-title">Редактирование</h2>
         </div>
-        <a href="#" class="cancel-link" id="cancel-trigger">Отмена</a>
+        <a href="#" class="cancel-link" id="cancel-trigger">Отмена</a>   
     </header>
 
     <div class="form-container">
         <div class="card">
             <!-- AVATAR -->
             <div class="avatar-edit-wrap" id="avatar-picker-trigger">
-                <img id="edit-avatar" src="" class="avatar-edit-img">
+                <img id="edit-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" class="avatar-edit-img">
                 <div class="camera-overlay"><i class="fas fa-camera"></i></div>
             </div>
 
@@ -116,22 +105,25 @@
 
             <!-- ABOUT (Optional) -->
             <div class="input-group">
-                <label>О себе</label>
-                <textarea id="edit-about" rows="3" placeholder="Расскажите немного о себе..."></textarea>
+                <label>О себе (Bio)</label>
+                <textarea id="edit-bio" rows="3" placeholder="Расскажите немного о себе..."></textarea>
             </div>
 
-            <!-- PHONE -->
+            <!-- EMAIL (Locked) -->
             <div class="input-group">
-                <label>Номер телефона</label>
-                <div class="phone-display-box">
-                    <span id="current-phone-display" class="current-phone">...</span>
-                    <span class="change-phone-btn" id="open-sms-modal">Изменить</span>
-                </div>
+                <label>Email (нельзя менять)</label>
+                <input type="email" id="edit-email" class="input-readonly" readonly>
+            </div>
+
+            <!-- PHONE (Lazy Verification) -->
+            <div class="input-group">
+                <label>Номер телефона <span id="phone-status" class="badge-verified">Подтвержден</span></label>
+                <input type="text" id="edit-phone" class="input-readonly" readonly placeholder="Номер подтверждается при бронировании">
             </div>
 
             <!-- READ ONLY FIELDS -->
             <div class="input-group">
-                <label>ID Пользователя (нельзя менять)</label>
+                <label>ID Пользователя</label>
                 <input type="text" id="display-id" class="input-readonly" readonly>
             </div>
 
@@ -141,31 +133,6 @@
             </div>
 
             <button class="save-btn" id="save-profile-btn">Сохранить изменения</button>
-        </div>
-    </div>
-
-    <!-- SMS MODAL -->
-    <div class="modal-overlay" id="sms-modal-overlay">
-        <!-- Step 1: New Phone -->
-        <div class="sms-modal" id="step-1-modal">
-            <h3 class="sms-title">Новый номер</h3>
-            <p class="sms-desc">Введите новый номер телефона. Мы отправим SMS с кодом подтверждения.</p>
-            <div class="input-group">
-                <input type="text" id="new-phone-input" placeholder="+998" style="text-align: center;">
-            </div>
-            <button class="save-btn" id="send-code-btn">Получить код</button>
-            <button class="btn-ghost" onclick="closeSmsModal()">Отмена</button>
-        </div>
-
-        <!-- Step 2: SMS Code -->
-        <div class="sms-modal" id="step-2-modal" style="display: none;">
-            <h3 class="sms-title">Подтверждение</h3>
-            <p class="sms-desc">Код отправлен на номер <br><strong id="target-phone">...</strong></p>
-            <div class="input-group">
-                <input type="text" id="sms-code-input" class="sms-input" maxlength="4" placeholder="0000">
-            </div>
-            <button class="save-btn" id="verify-code-btn">Подтвердить</button>
-            <div class="sms-timer" id="resend-timer">Повторная отправка через 02:00</div>
         </div>
     </div>
 

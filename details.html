@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">     
     <title>Детали объявления - DachaGo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
             --success-green: #28C76F;
         }
         body { font-family: 'Inter', sans-serif; background-color: var(--soft-gray); margin: 0; padding-bottom: 120px; color: var(--text-dark); -webkit-font-smoothing: antialiased; }
-        
+
         /* HEADER / GALLERY */
         .gallery-container { position: relative; width: 100%; height: 350px; background: #eee; }
         .gallery-img { width: 100%; height: 100%; object-fit: cover; }
@@ -26,94 +26,58 @@
         .action-btn.fav.active i { color: var(--primary-blue); }
 
         .listing-content { background: var(--white); border-radius: 40px 40px 0 0; margin-top: -40px; position: relative; padding: 30px 24px; box-shadow: 0 -10px 40px rgba(0,0,0,0.05); }
-        
+
         /* TITLE & PRICE */
         .price-tag { background: #F0F7FF; color: var(--primary-blue); padding: 8px 16px; border-radius: 12px; font-weight: 900; font-size: 20px; display: inline-block; margin-bottom: 15px; }
-        .price-tag span { font-size: 12px; font-weight: 700; opacity: 0.7; }
+        .price-tag span { font-size: 12px; font-weight: 700; opacity: 0.7; }   
         .listing-title { font-weight: 900; font-size: 24px; margin: 0 0 8px 0; }
-        .listing-loc { color: var(--text-light); font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+        .listing-loc { color: var(--text-light); font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }      
         .listing-id { font-family: monospace; font-size: 11px; background: var(--soft-gray); padding: 4px 8px; border-radius: 6px; color: var(--text-light); }
 
         /* CHARACTERISTICS */
         .chars-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 30px; border-top: 1px solid #F0F3F6; border-bottom: 1px solid #F0F3F6; padding: 20px 0; }
         .char-item { text-align: center; }
         .char-icon { width: 40px; height: 40px; background: var(--soft-gray); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: var(--text-dark); font-size: 16px; }
-        .char-val { display: block; font-weight: 800; font-size: 14px; }
+        .char-val { display: block; font-weight: 800; font-size: 14px; }       
         .char-label { display: block; font-size: 9px; font-weight: 700; color: var(--text-light); text-transform: uppercase; margin-top: 2px; }
 
         /* AMENITIES */
         .section-title { font-weight: 800; font-size: 18px; margin-bottom: 16px; }
-        .amenities-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 30px; }
-        .amenity-item { display: flex; align-items: center; gap: 10px; color: #4A4A4A; font-weight: 600; font-size: 14px; }
-        .amenity-item i { color: var(--primary-blue); width: 20px; }
-
-        /* DESCRIPTION */
         .description-text { color: #555; font-size: 14px; line-height: 1.6; margin-bottom: 30px; white-space: pre-line; }
 
+        .amenities-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; margin-top: 15px; }
+        .amenity-item { background: #F0F7FF; padding: 15px 5px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; border: 1px solid var(--primary-blue); position: relative; }
+        .amenity-item i { font-size: 20px; color: var(--primary-blue); }
+        .amenity-item span { font-size: 9px; font-weight: 700; color: var(--primary-blue); }
+        .check-badge { position: absolute; top: -5px; right: -5px; background: var(--primary-blue); color: white; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; border: 2px solid white; font-weight: 900; }
+
         /* OWNER CARD */
-        .owner-card { background: var(--soft-gray); border-radius: 24px; padding: 16px; display: flex; align-items: center; gap: 15px; margin-bottom: 30px; }
+        .owner-card { background: var(--soft-gray); border-radius: 24px; padding: 16px; display: flex; align-items: center; gap: 15px; margin-bottom: 30px; } 
         .owner-avatar { width: 50px; height: 50px; border-radius: 16px; object-fit: cover; }
         .owner-info { flex: 1; }
-        .owner-name { font-weight: 800; font-size: 15px; display: block; }
+        .owner-name { font-weight: 800; font-size: 15px; display: block; }     
         .owner-status { font-size: 11px; color: var(--text-light); font-weight: 700; }
-        .owner-rating { background: #FFF9E7; color: #FFB800; padding: 4px 8px; border-radius: 8px; font-weight: 900; font-size: 12px; display: flex; align-items: center; gap: 4px; }
 
         /* BOTTOM ACTIONS */
         .bottom-actions { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 20px 24px 40px; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.05); display: flex; gap: 15px; z-index: 100; }
-        .chat-btn { width: 60px; height: 60px; border-radius: 20px; background: #F0F3F6; display: flex; align-items: center; justify-content: center; color: var(--text-dark); font-size: 20px; text-decoration: none; transition: 0.2s; }
+        .chat-btn { width: 60px; height: 60px; border-radius: 20px; background: #F0F3F6; display: flex; align-items: center; justify-content: center; color: var(--text-dark); font-size: 20px; text-decoration: none; transition: 0.2s; }   
         .book-btn { flex: 1; height: 60px; border-radius: 20px; background: var(--primary-blue); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; text-decoration: none; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.2); transition: 0.2s; }
-        .chat-btn:active, .book-btn:active { transform: scale(0.97); }
 
+        /* SMS MODAL STYLES */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }        
+        .sms-modal { background: white; border-radius: 35px; width: 100%; max-width: 400px; padding: 35px 25px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .sms-title { font-weight: 900; font-size: 22px; margin-bottom: 10px; } 
+        .sms-desc { color: var(--text-light); font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
+        .phone-input-wrap { background: #F8FAFC; border: 1.5px solid #E2E8F0; padding: 16px; border-radius: 18px; margin-bottom: 20px; }
+        .phone-input-wrap input { width: 100%; border: none; background: transparent; outline: none; font-size: 18px; font-weight: 700; text-align: center; color: var(--text-dark); }
+        
+        .otp-container { display: flex; justify-content: center; gap: 12px; margin-bottom: 25px; }
+        .otp-box { width: 50px; height: 60px; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 15px; font-size: 24px; font-weight: 900; text-align: center; outline: none; color: var(--primary-blue); transition: 0.3s; }
+        .otp-box:focus { border-color: var(--primary-blue); background: white; box-shadow: 0 0 0 4px rgba(37,153,200,0.1); }
 
-        
-        
-        /* EXACT AMENITIES DESIGN FROM CREATE.HTML */
-        .amenities-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 10px; 
-            margin-bottom: 20px; 
-            margin-top: 15px;
-        }
-        .amenity-item { 
-            background: #F0F7FF; /* Active background */
-            padding: 15px 5px; 
-            border-radius: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            text-align: center; 
-            gap: 8px; 
-            border: 1px solid var(--primary-blue); /* Active border */
-            position: relative; 
-        }
-        .amenity-item i { 
-            font-size: 20px; 
-            color: var(--primary-blue); 
-        }
-        .amenity-item span { 
-            font-size: 9px; 
-            font-weight: 700; 
-            color: var(--primary-blue); 
-            text-transform: none;
-        }
-        .check-badge { 
-            position: absolute; 
-            top: -5px; 
-            right: -5px; 
-            background: var(--primary-blue); 
-            color: white; 
-            width: 18px; 
-            height: 18px; 
-            border-radius: 50%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 8px; 
-            border: 2px solid white; 
-            font-weight: 900;
-        }
+        .btn-modal { width: 100%; background: var(--primary-blue); color: white; border: none; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 16px; cursor: pointer; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.3); }
+        .btn-modal:disabled { opacity: 0.5; }
+        .btn-close { background: transparent; color: var(--text-light); border: none; padding: 10px; font-weight: 700; cursor: pointer; margin-top: 15px; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -132,7 +96,7 @@
 
     <main class="listing-content">
         <div id="price-container" class="price-tag">0 сум <span>/сутки</span></div>
-        
+
         <h1 id="listing-title" class="listing-title">...</h1>
         <div class="listing-loc">
             <i class="fas fa-map-marker-alt"></i> <span id="listing-location">...</span>
@@ -140,40 +104,20 @@
         </div>
 
         <div class="chars-grid">
-            <div class="char-item">
-                <div class="char-icon"><i class="fas fa-bed"></i></div>
-                <span class="char-val" id="char-beds">-</span>
-                <span class="char-label">Спальни</span>
-            </div>
-            <div class="char-item">
-                <div class="char-icon"><i class="fas fa-bath"></i></div>
-                <span class="char-val" id="char-baths">-</span>
-                <span class="char-label">Санузлы</span>
-            </div>
-            <div class="char-item">
-                <div class="char-icon"><i class="fas fa-vector-square"></i></div>
-                <span class="char-val" id="char-area">-</span>
-                <span class="char-label">м²</span>
-            </div>
-            <div class="char-item">
-                <div class="char-icon"><i class="fas fa-users"></i></div>
-                <span class="char-val" id="char-capacity">-</span>
-                <span class="char-label">Гости</span>
-            </div>
+            <div class="char-item"><div class="char-icon"><i class="fas fa-bed"></i></div><span class="char-val" id="char-beds">-</span><span class="char-label">Спальни</span></div>
+            <div class="char-item"><div class="char-icon"><i class="fas fa-bath"></i></div><span class="char-val" id="char-baths">-</span><span class="char-label">Санузлы</span></div>
+            <div class="char-item"><div class="char-icon"><i class="fas fa-vector-square"></i></div><span class="char-val" id="char-area">-</span><span class="char-label">м²</span></div>
+            <div class="char-item"><div class="char-icon"><i class="fas fa-users"></i></div><span class="char-val" id="char-capacity">-</span><span class="char-label">Гости</span></div>
         </div>
 
         <section>
             <h2 class="section-title">Удобства</h2>
-            <div class="amenities-grid" id="amenities-container">
-                <!-- Will be populated by JS -->
-            </div>
+            <div class="amenities-grid" id="amenities-container"></div>
         </section>
 
         <section>
             <h2 class="section-title">Описание</h2>
-            <div class="description-text" id="listing-description">
-                ...
-            </div>
+            <div class="description-text" id="listing-description">...</div>
         </section>
 
         <section>
@@ -182,11 +126,7 @@
                 <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=owner" id="owner-avatar" class="owner-avatar">
                 <div class="owner-info">
                     <span class="owner-name" id="owner-name">Загрузка...</span>
-                    <span class="owner-status">Частное лицо • На DachaGo с 2024</span>
-                </div>
-                <div class="owner-rating">
-                    <i class="fas fa-star"></i>
-                    <span>4.9</span>
+                    <span class="owner-status">На DachaGo с 2024</span>
                 </div>
             </div>
         </section>
@@ -195,6 +135,34 @@
     <div class="bottom-actions">
         <a href="#" class="chat-btn" id="chat-action-btn"><i class="fas fa-comment-dots"></i></a>
         <a href="#" class="book-btn" id="book-action-btn">Забронировать</a>
+    </div>
+
+    <!-- SMS VERIFICATION MODAL -->
+    <div class="modal-overlay" id="sms-verification-modal">
+        <!-- Step 1: Input Phone -->
+        <div class="sms-modal" id="modal-step-phone">
+            <h3 class="sms-title">Подтверждение номера</h3>
+            <p class="sms-desc">Чтобы забронировать дачу, необходимо подтвердить номер телефона.</p>
+            <div class="phone-input-wrap">
+                <input type="text" id="booking-phone-input" placeholder="+998" value="+998">
+            </div>
+            <button class="btn-modal" id="btn-get-code">Получить код</button>
+            <button class="btn-close" id="close-modal-btn">Отмена</button>
+        </div>
+
+        <!-- Step 2: Input Code -->
+        <div class="sms-modal" id="modal-step-code" style="display: none;">
+            <h3 class="sms-title">Код из СМС</h3>
+            <p class="sms-desc">Мы отправили 4-значный код на номер <br><strong id="confirm-phone-label"></strong></p>
+            <div class="otp-container">
+                <input type="text" maxlength="1" class="otp-box" inputmode="numeric">
+                <input type="text" maxlength="1" class="otp-box" inputmode="numeric">
+                <input type="text" maxlength="1" class="otp-box" inputmode="numeric">
+                <input type="text" maxlength="1" class="otp-box" inputmode="numeric">
+            </div>
+            <button class="btn-modal" id="btn-verify-book">Подтвердить и забронировать</button>
+            <button class="btn-close" id="back-to-phone-btn">Сменить номер</button>
+        </div>
     </div>
 
     <script src="config.js"></script>
