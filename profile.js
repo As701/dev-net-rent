@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api';
+    // ИСПРАВЛЕНИЕ АДРЕСА API: Добавлен обязательный префикс /v1, как на бэкенде Render
+    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
     const token = localStorage.getItem('token');
     
     const elements = {
@@ -8,7 +9,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         id: document.getElementById('display-id'),
         phone: document.getElementById('display-phone'),
         avatar: document.getElementById('user-avatar'),
-        logout: document.getElementById('logout-trigger')
+        logout: document.getElementById('logout-trigger'),
+        // Новые элементы из HTML, которые раньше игнорировались:
+        statusDot: document.getElementById('status-dot'),
+        statusLabel: document.getElementById('status-label')
     };
 
     if (!token) {
@@ -47,6 +51,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const user = await response.json();
+            
+            // Железно сохраняем актуальные данные пользователя в localStorage
             localStorage.setItem('user', JSON.stringify(user));
             renderProfile(user);
         } catch (error) {
@@ -58,14 +64,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderProfile(user) {
-        if (elements.name) elements.name.innerText = user.name;
-        if (elements.id) elements.id.innerText = user.id;
-        if (elements.phone) elements.phone.innerText = user.phone || 'Не указан';
+        // Заполняем имя и аватарку по умолчанию
+        if (elements.name) elements.name.innerText = user.name || 'Пользователь';
+        if (elements.phone) elements.phone.innerText = user.phone || user.email || 'Телефон не указан';
+        if (elements.avatar && !elements.avatar.src) {
+            elements.avatar.src = user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+        }
+        
+        // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Выводим уникальный сгенерированный ID бэкенда
+        if (elements.id) {
+            elements.id.innerText = user.user_id_code || user.id || 'N/A';
+        }
+
+        // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Выводим роль пользователя и статус верификации
+        if (elements.statusLabel && elements.statusDot) {
+            const userRole = user.role === 'admin' ? 'Администратор' : 'Пользователь';
+            elements.statusLabel.innerText = `Роль: ${userRole}`;
+            elements.statusDot.classList.add('verified'); // Активируем зеленую точку статуса
+        }
         
         if (elements.logout) {
             elements.logout.addEventListener('click', () => {
                 localStorage.clear();
-                window.location.reload();
+                window.location.href = 'index.html'; // При выходе красиво редиректим на главную
             });
         }
     }
