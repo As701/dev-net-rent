@@ -19,9 +19,38 @@
         .container { max-width: 400px; width: 100%; padding: 30px; text-align: center; }
         h1 { font-weight: 800; font-size: 24px; margin-bottom: 10px; }
         p { color: var(--text-light); font-size: 14px; margin-bottom: 30px; }
-        .otp-inputs { display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; }
-        .otp-field { width: 45px; height: 55px; background: var(--soft-gray); border: 2px solid transparent; border-radius: 12px; font-size: 24px; font-weight: 800; text-align: center; color: var(--brand-color); outline: none; transition: 0.3s; }
-        .otp-field:focus { border-color: var(--brand-color); background: white; transform: scale(1.05); }
+        
+        /* ЧАСТЬ 2: Стили для аккуратных инпутов */
+        .code-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* Расстояние между квадратиками */
+            margin-top: 20px;
+            margin-bottom: 25px;
+            width: 100%;
+        }
+
+        .code-input {
+            width: 45px !important;  /* Жестко задаем ширину */
+            height: 45px !important; /* Жестко задаем высоту */
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;     /* Скругление как на макете */
+            background-color: #F8FAFC;
+            color: #1E293B;
+            outline: none;
+            transition: all 0.2s ease;
+            padding: 0 !important;   /* Сбрасываем внутренние отступы */
+        }
+
+        .code-input:focus {
+            border-color: #3B82F6;   /* Синяя рамка при фокусе */
+            background-color: #FFFFFF;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
         .submit-btn { width: 100%; background: var(--primary-blue); color: white; border: none; padding: 18px; border-radius: 20px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; }
         .submit-btn:disabled { opacity: 0.5; }
         .resend-box { margin-top: 25px; font-size: 14px; }
@@ -34,13 +63,14 @@
         <h1>Введите код</h1>
         <p>Мы отправили 6-значный код на почту <br><strong id="user-email" style="color: var(--text-dark);"></strong></p>
         
-        <div class="otp-inputs">
-            <input type="text" class="otp-field" maxlength="1" inputmode="numeric">
-            <input type="text" class="otp-field" maxlength="1" inputmode="numeric">
-            <input type="text" class="otp-field" maxlength="1" inputmode="numeric">
-            <input type="text" class="otp-field" maxlength="1" inputmode="numeric">
-            <input type="text" class="otp-field" maxlength="1" inputmode="numeric">
-            <input type="text" class="otp-field" maxlength="1" inputmode="numeric">
+        <!-- ЧАСТЬ 2: HTML-структура контейнера -->
+        <div class="code-container">
+            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
+            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
+            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
+            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
+            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
+            <input type="text" maxlength="1" class="code-input" pattern="\d*" inputmode="numeric">
         </div>
 
         <button class="submit-btn" id="btn-verify">Подтвердить</button>
@@ -57,7 +87,7 @@
         const email = urlParams.get('email');
         document.getElementById('user-email').innerText = email;
 
-        const fields = document.querySelectorAll('.otp-field');
+        const fields = document.querySelectorAll('.code-input');
         fields.forEach((f, i) => {
             f.addEventListener('input', () => {
                 f.value = f.value.replace(/\D/g, '');
@@ -78,17 +108,31 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, code })
                 });
-                const data = await res.json();
-                if (res.ok) {
-                    alert('Email подтвержден!');
-                    window.location.href = 'auth.html';
+                const result = await res.json();
+                
+                // ЧАСТЬ 1: Исправленная логика обработки ответа
+                if (res.ok && result.status === "success") {
+                    // 1. Сохраняем JWT-токен
+                    if (result.token) {
+                        localStorage.setItem("token", result.token);
+                    }
+
+                    // 2. Сохраняем данные пользователя
+                    if (result.user) {
+                        localStorage.setItem("user_name", result.user.name || "");
+                        localStorage.setItem("user_id", result.user.id || "");
+                    }
+
+                    alert("Регистрация успешно завершена!");
+
+                    // 3. Перенаправляем авторизованным
+                    window.location.href = "profile.html"; 
                 } else {
-                    alert(data.detail || 'Ошибка верификации');
+                    alert(result.message || result.detail || "Ошибка верификации");
                 }
             } catch (e) { alert('Ошибка сети'); }
         });
 
-        // Simple timer logic
         let sec = 59;
         const timerText = document.getElementById('timer-text');
         const resendLink = document.getElementById('resend-link');
@@ -104,7 +148,6 @@
 
         resendLink.addEventListener('click', async (e) => {
             e.preventDefault();
-            // Just trigger register again to resend OTP (simple approach)
             alert('Запрос на повторную отправку...');
             window.location.reload();
         });
