@@ -4,7 +4,7 @@ import jwt
 import bcrypt
 import string
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException, Request, Header, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -137,10 +137,12 @@ def generate_dgid():
 # --- API V1 AUTH ENDPOINTS ---
 
 @app.post("/api/v1/auth/register")
-async def register(data: Dict[str, str], background_tasks: BackgroundTasks):
+async def register(request: Request, background_tasks: BackgroundTasks):
     try:
         name = data.get('name')
-        email = data.get('email')
+        raw_raw_email = data.get('email')
+        email = raw_email.lower().strip() if raw_email else None
+        email = raw_email.lower().strip() if raw_email else None
         password = data.get('password')
 
         if not name or not email or not password:
@@ -200,9 +202,11 @@ async def register(data: Dict[str, str], background_tasks: BackgroundTasks):
         raise HTTPException(status_code=500, detail="Ошибка сервера при регистрации")
 
 @app.post("/api/v1/auth/verify-email")
-async def verify_email(data: Dict[str, str]):
+async def verify_email(request: Request):
     try:
-        email = data.get('email')
+        raw_raw_email = data.get('email')
+        email = raw_email.lower().strip() if raw_email else None
+        email = raw_email.lower().strip() if raw_email else None
         code = data.get('code')
 
         if not email or not code:
@@ -222,7 +226,11 @@ async def verify_email(data: Dict[str, str]):
         # Increment attempts
         await database.execute(otp_codes_table.update().where(otp_codes_table.c.id == otp_record['id']).values(attempts=otp_record['attempts'] + 1))
 
-        if datetime.utcnow() > otp_record['expires_at']:
+        current_time = datetime.now(timezone.utc)
+        user_expire = otp_record['expires_at']
+        if user_expire.tzinfo is None:
+            user_expire = user_expire.replace(tzinfo=timezone.utc)
+        if current_time > user_expire:
             raise HTTPException(status_code=400, detail="Срок действия кода истек")
 
         if otp_record['code'] != code:
@@ -244,7 +252,9 @@ async def verify_email(data: Dict[str, str]):
 @app.post("/api/v1/auth/login")
 async def login(data: Dict[str, str]):
     try:
-        email = data.get('email')
+        raw_raw_email = data.get('email')
+        email = raw_email.lower().strip() if raw_email else None
+        email = raw_email.lower().strip() if raw_email else None
         password = data.get('password')
 
         if not email or not password:
