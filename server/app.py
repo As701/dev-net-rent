@@ -48,7 +48,7 @@ listings_table = Table(
     Column("status", String, default="active")
 )
 
-SECRET_KEY = "DACHA_GO_ULTRA_SECRET_KEY_2026" 
+SECRET_KEY = "DACHAGO_ULTRA_SECURE_PRODUCTION_KEY_2026_LONG_AND_UNIQUE" 
 
 app = FastAPI()
 
