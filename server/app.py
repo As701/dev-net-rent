@@ -246,5 +246,31 @@ async def get_listings():
     conn.close()
     return [dict(r) for r in rows]
 
+
+@app.get("/api/users/me")
+async def get_me(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    token = authorization.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+            
+        conn = get_db()
+        user = conn.execute("SELECT id, name, email, phone, role FROM users WHERE id=?", (user_id,)).fetchone()
+        conn.close()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        return dict(user)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=5005)
