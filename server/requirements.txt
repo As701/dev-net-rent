@@ -5,3 +5,7 @@ bcrypt
 PyJWT
 python-multipart
 resend
+sqlalchemy
+databases[postgresql]
+asyncpg
+psycopg2-binary
