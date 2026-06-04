@@ -4,3 +4,4 @@ pydantic
 bcrypt
 PyJWT
 python-multipart
+resend

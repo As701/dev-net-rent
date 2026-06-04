@@ -1,3 +1,5 @@
+import resend
+import os
 from fastapi import FastAPI, HTTPException, Body, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List, Dict, Any
@@ -79,27 +81,32 @@ def generate_dgid():
     return f"#DGID{digits}{letter}"
 
 def send_otp_email(to_email, name, code):
-    if not SMTP_USER or not SMTP_PASS:
-        print(f"DEBUG: Email to {to_email} with code {code} (SMTP not configured)")
+    api_key = os.environ.get('RESEND_API_KEY')
+    if not api_key:
+        print(f'DEBUG: OTP for {to_email} is {code} (RESEND_API_KEY not set)')
         return True
-    
+    resend.api_key = api_key
+    html_content = f'''
+    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #2b96cd; text-align: center;">DachaGo</h2>
+        <p>Здравствуйте, <strong>{name}</strong>!</p>
+        <p>Ваш код для подтверждения регистрации:</p>
+        <div style="background: #f4f7f9; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1a1d1e;">{code}</span>
+        </div>
+        <p style="font-size: 12px; color: #9ba5b7;">Код действителен в течение 5 минут. Если вы не запрашивали этот код, просто проигнорируйте письмо.</p>
+    </div>
+    '''
     try:
-        msg = MIMEMultipart()
-        msg['From'] = SMTP_USER
-        msg['To'] = to_email
-        msg['Subject'] = "Код подтверждения для DachaGo"
-        
-        body = f"Здравствуйте, {name}!\n\nВаш код для подтверждения аккаунта: {code}.\nКод действует 5 минут."
-        msg.attach(MIMEText(body, 'plain'))
-        
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
-        server.quit()
+        resend.Emails.send({
+            "from": "DachaGo <noreply@dacha-go.uz>",
+            "to": [to_email],
+            "subject": "Код подтверждения регистрации DachaGo",
+            "html": html_content
+        })
         return True
     except Exception as e:
-        print(f"SMTP Error: {e}")
+        print(f'Resend Error: {e}')
         return False
 
 # --- AUTH ENDPOINTS ---
