@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 import resend
 from databases import Database
 from sqlalchemy import create_engine, MetaData, Table, Column, String, Boolean, DateTime, Float, Integer, text
+from supabase import create_client, Client
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -31,7 +32,18 @@ elif not DATABASE_URL:
 database = Database(DATABASE_URL)
 metadata = MetaData()
 
-# Create storage directory for uploads
+# 2. SUPABASE CONFIGURATION
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+supabase_client: Optional[Client] = None
+
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    logger.info("Supabase client initialized.")
+else:
+    logger.warning("SUPABASE_URL or SUPABASE_KEY not found. Local storage will be used if configured.")
+
+# Create local storage directory for fallback
 UPLOAD_DIR = "storage/avatars"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -102,7 +114,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve static files for avatars
+# Serve static files for avatars (fallback)
 app.mount("/storage", StaticFiles(directory="storage"), name="storage")
 
 @app.on_event("startup")
@@ -187,7 +199,6 @@ async def register(request: Request, background_tasks: BackgroundTasks):
         hashed_pass = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         otp_code, expire_time = str(random.randint(100000, 999999)), datetime.utcnow() + timedelta(minutes=10)
         
-        # Generate initial avatar using DiceBear
         initial_avatar = f"https://api.dicebear.com/7.x/avataaars/svg?seed={email}"
 
         if existing:
@@ -270,27 +281,39 @@ async def update_user(request: Request, authorization: Optional[str] = Header(No
 async def upload_avatar(file: UploadFile = File(...), authorization: Optional[str] = Header(None)):
     user_id = await get_current_user_id(authorization)
     
-    # Validate file extension
-    ext = file.filename.split(".")[-1].lower()
-    if ext not in ["jpg", "jpeg", "png", "webp"]:
-        raise HTTPException(status_code=400, detail="Invalid image format")
+    file_ext = file.filename.split(".")[-1].lower()
+    if file_ext not in ["jpg", "jpeg", "png", "webp"]:
+        raise HTTPException(status_code=400, detail="Format not supported (jpg, png, webp only)")
     
-    filename = f"{uuid.uuid4()}.{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    
-    with open(filepath, "wb") as buffer:
-        buffer.write(await file.read())
-    
-    # Construct URL (relative for simplicity, ideally absolute with domain)
-    avatar_url = f"/storage/avatars/{filename}"
-    
-    await database.execute(users_table.update().where(users_table.c.id == user_id).values(avatar_url=avatar_url))
-    
-    return {"status": "success", "avatar_url": avatar_url}
+    try:
+        file_content = await file.read()
+        filename = f"avatar_user_{user_id.replace('#', '')}.{file_ext}"
+        
+        if supabase_client:
+            # Upload to Supabase Storage
+            supabase_client.storage.from_("avatars").upload(
+                path=filename,
+                file=file_content,
+                file_options={"content-type": file.content_type, "upsert": "true"}
+            )
+            avatar_url = supabase_client.storage.from_("avatars").get_public_url(filename)
+        else:
+            # Fallback to local storage
+            filepath = os.path.join(UPLOAD_DIR, filename)
+            with open(filepath, "wb") as buffer:
+                buffer.write(file_content)
+            avatar_url = f"/storage/avatars/{filename}"
+        
+        await database.execute(users_table.update().where(users_table.c.id == user_id).values(avatar_url=avatar_url))
+        return {"status": "success", "avatar_url": avatar_url}
+        
+    except Exception as e:
+        logger.error(f"UPLOAD ERROR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error interacting with storage: {str(e)}")
 
 @app.post("/api/v1/auth/send-sms-verification")
 async def send_sms_verification(request: Request, authorization: Optional[str] = Header(None)):
-    await get_current_user_id(authorization) # Ensure user is logged in
+    await get_current_user_id(authorization)
     data = await request.json()
     phone = data.get("phone")
     if not phone: raise HTTPException(status_code=400, detail="Phone is required")
@@ -325,7 +348,6 @@ async def verify_sms_and_book(request: Request, authorization: Optional[str] = H
     ))
     
     if phone in sms_codes: del sms_codes[phone]
-    
     return {"status": "success", "message": "Phone verified and booking created"}
 
 @app.get("/api/v1/users/me")

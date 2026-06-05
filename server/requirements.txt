@@ -10,3 +10,4 @@ databases[postgresql]
 asyncpg
 psycopg2-binary
 aiosqlite
+supabase
