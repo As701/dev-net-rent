@@ -3,7 +3,7 @@
     let userEmail = ''; 
     let timerInterval = null;
 
-    const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api';
+    const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api/v1';
 
     let identityMask = null;
 
@@ -84,7 +84,7 @@
             isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
         } else {
             // Check if phone is complete (9 digits after +998)
-            isValid = identityMask.unmaskedValue.length === 12;
+            isValid = identityMask && identityMask.unmaskedValue.length === 12;
         }
 
         if (isValid) {
@@ -296,7 +296,8 @@
 
         setLoading(true, verifyBtn);
         try {
-            const response = await fetch(`${API_URL}/auth/verify`, {
+            // UPDATED ENDPOINT for API v1
+            const response = await fetch(`${API_URL}/auth/verify-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail, code: code })
@@ -306,11 +307,13 @@
 
             if (response.ok) {
                 transitionScreens(screenOtp, screenSuccess);
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                // Support both 'access_token' and 'token' keys
+                const token = data.access_token || data.token;
+                if (token) localStorage.setItem('token', token);
+                if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
                 setTimeout(() => { window.location.href = 'index.html'; }, 2500);
             } else {
-                alert(data.detail || 'Неверный код подтверждения');
+                alert(data.detail || data.message || 'Неверный код подтверждения');
                 otpInputs.forEach(i => i.value = '');
                 otpInputs[0].focus();
             }
@@ -340,7 +343,7 @@
                 startTimer();
             } else {
                 const data = await response.json();
-                alert(data.detail || 'Ошибка отправки');
+                alert(data.detail || data.message || 'Ошибка отправки');
             }
         } catch (err) {
             alert('Ошибка сервера');
@@ -399,7 +402,7 @@
                 if (response.ok) {
                     showOTPScreen();
                 } else {
-                    alert(data.detail || 'Ошибка регистрации');
+                    alert(data.detail || data.message || 'Ошибка регистрации');
                 }
             } catch (err) {
                 alert('Ошибка сервера');
@@ -407,20 +410,21 @@
                 setLoading(false, submitBtn);
             }
         } else {
-            // Login
+            // Login - UPDATED KEY TO 'email' for API v1
             try {
                 const response = await fetch(`${API_URL}/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identity: identifier, password })
+                    body: JSON.stringify({ email: identifier, password })
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
+                    const token = data.access_token || data.token;
+                    if (token) localStorage.setItem('token', token);
+                    if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
                     window.location.href = 'index.html';
                 } else {
-                    alert(data.detail || 'Ошибка входа');
+                    alert(data.detail || data.message || 'Ошибка входа');
                 }
             } catch (err) {
                 alert('Ошибка сервера');
