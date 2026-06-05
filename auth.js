@@ -356,33 +356,44 @@
         setTimeout(() => otpInputs[0].focus(), 500);
     }
 
+    // --- DATA EXTRACTION ---
+    function getCleanIdentifier() {
+        if (!identityInput) return '';
+        const rawValue = identityInput.value.trim();
+        
+        // Check if it's an email (contains letters or @)
+        const isEmail = /[a-zA-Z@]/.test(rawValue);
+        
+        if (isEmail) {
+            return rawValue;
+        } else {
+            // It's a phone: strip formatting but keep the plus
+            return rawValue.replace(/[\s-()]/g, '');
+        }
+    }
+
     // --- FORM SUBMISSION ---
     async function handleSubmit(e) {
         e.preventDefault();
         
         const name = nameInput.value.trim();
-        
-        let identity = '';
-        const val = identityInput.value.trim();
-        const isEmail = /[a-zA-Z@]/.test(val);
-
-        if (isEmail) {
-            identity = val;
-        } else if (identityMask) {
-            identity = '+' + identityMask.unmaskedValue;
-        }
-
+        const identifier = getCleanIdentifier();
         const password = passwordInput.value;
+
+        if (!identifier || !password) {
+            showError('identity', 'Заполните это поле');
+            return;
+        }
 
         setLoading(true, submitBtn);
 
         if (currentTab === 'register') {
-            userEmail = identity;
+            userEmail = identifier;
             try {
                 const response = await fetch(`${API_URL}/auth/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email: identity, password })
+                    body: JSON.stringify({ name, email: identifier, password })
                 });
                 const data = await response.json();
                 if (response.ok) {
@@ -401,7 +412,7 @@
                 const response = await fetch(`${API_URL}/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identity, password })
+                    body: JSON.stringify({ identity: identifier, password })
                 });
                 const data = await response.json();
                 if (response.ok) {
