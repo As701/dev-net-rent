@@ -1,4 +1,11 @@
-    let phoneMaskInstance = null;
+(function() {
+    let currentTab = 'login';
+    let userEmail = ''; 
+    let timerInterval = null;
+
+    const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api';
+
+    let identityMask = null;
 
     // Elements
     const screenInput = document.getElementById('screen-input');
@@ -16,42 +23,68 @@
     const otpInputs = document.querySelectorAll('.otp-input');
 
     const nameInput = document.getElementById('input-name');
-    
-    // Identity Dual-Input Elements
-    const emailInput = document.getElementById('auth-email-field');
-    const phoneInput = document.getElementById('auth-phone-field');
-    const authIcon = document.getElementById('auth-icon');
-    const authLabel = document.getElementById('auth-label');
+    const identityInput = document.getElementById('input-identity');
+    const identityIcon = document.getElementById('identity-icon');
+    const identityLabel = document.getElementById('auth-label');
 
     const passwordInput = document.getElementById('input-password');
     const confirmInput = document.getElementById('input-confirm');
     const passReqsBox = document.getElementById('pass-reqs');
 
-    // Smart Mask Functions (for Phone field only)
-    function initPhoneMask() {
-        if (!phoneMaskInstance && phoneInput) {
-            phoneMaskInstance = IMask(phoneInput, {
-                mask: '+{998} (00) 000-00-00',
-                lazy: false,
-                eager: true
-            });
-            phoneMaskInstance.on('accept', () => {
-                validateIdentity();
-            });
-        }
+    // --- DYNAMIC MASK LOGIC ---
+    function initDynamicMask() {
+        if (!identityInput) return;
+
+        identityMask = IMask(identityInput, {
+            mask: [
+                {
+                    // PATTERN A: Phone
+                    mask: '+{998} (00) 000-00-00',
+                    lazy: false,
+                    eager: true,
+                    startsWith: function (value, prepared) {
+                        return /^\+?[0-9\s-()]*$/.test(value);
+                    }
+                },
+                {
+                    // PATTERN B: Free entry (Email)
+                    mask: /^[a-zA-Z0-9.@_\-*]*$/,
+                    lazy: true
+                }
+            ]
+        });
+
+        // Handle UI updates based on current mask pattern
+        identityMask.on('accept', () => {
+            const val = identityInput.value.trim();
+            const isEmail = /[a-zA-Z@]/.test(val);
+
+            if (isEmail) {
+                if (identityIcon) identityIcon.className = 'far fa-envelope field-icon';
+                if (identityLabel) identityLabel.innerText = currentTab === 'register' ? 'EMAIL ДЛЯ РЕГИСТРАЦИИ' : 'EMAIL ИЛИ ТЕЛЕФОН';
+            } else if (val.length > 0) {
+                if (identityIcon) identityIcon.className = 'fas fa-phone field-icon';
+                if (identityLabel) identityLabel.innerText = currentTab === 'register' ? 'ТЕЛЕФОН ДЛЯ РЕГИСТРАЦИИ' : 'ТЕЛЕФОН';
+            } else {
+                if (identityLabel) identityLabel.innerText = currentTab === 'register' ? 'EMAIL ДЛЯ РЕГИСТРАЦИИ' : 'EMAIL ИЛИ ТЕЛЕФОН';
+            }
+
+            validateIdentity();
+        });
     }
 
     function validateIdentity() {
-        const wrapper = emailInput.closest('.input-wrapper');
+        const wrapper = identityInput.closest('.input-wrapper');
+        const val = identityInput.value.trim();
         let isValid = false;
 
-        if (phoneInput.style.display === 'block' && phoneMaskInstance) {
-            // Check if phone is complete (9 digits after +998)
-            isValid = phoneMaskInstance.unmaskedValue.length === 12;
-        } else {
-            // Email validation
-            const val = emailInput.value.trim();
+        const isEmail = /[a-zA-Z@]/.test(val);
+
+        if (isEmail) {
             isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+        } else {
+            // Check if phone is complete (9 digits after +998)
+            isValid = identityMask.unmaskedValue.length === 12;
         }
 
         if (isValid) {
@@ -69,8 +102,7 @@
         setupPasswordToggle();
         setupRealtimeValidation();
         setupOTPInputs();
-        setupIdentitySwitching();
-        initPhoneMask(); // Always init on the hidden phone field
+        initDynamicMask();
 
         form.addEventListener('submit', handleSubmit);
         if (verifyBtn) verifyBtn.addEventListener('click', handleVerifyOTP);
@@ -85,53 +117,6 @@
                 authHeader.style.display = 'block';
             });
         }
-    }
-
-    function setupIdentitySwitching() {
-        if (!emailInput || !phoneInput) return;
-
-        // 1. LISTEN TO EMAIL FIELD
-        emailInput.addEventListener('input', (e) => {
-            const val = emailInput.value.trim();
-            
-            // If first char is digit or plus, switch to phone
-            if (/^[0-9+]/.test(val)) {
-                emailInput.style.display = 'none';
-                phoneInput.style.display = 'block';
-                
-                if (authIcon) authIcon.className = 'fas fa-phone field-icon';
-                if (authLabel) authLabel.innerText = currentTab === 'register' ? 'ТЕЛЕФОН ДЛЯ РЕГИСТРАЦИИ' : 'ТЕЛЕФОН';
-                
-                phoneInput.focus();
-                // If it was a digit, put it in the mask
-                if (phoneMaskInstance) {
-                    phoneMaskInstance.value = val;
-                }
-                
-                emailInput.value = '';
-            }
-            validateIdentity();
-        });
-
-        // 2. LISTEN TO PHONE FIELD
-        phoneInput.addEventListener('input', () => {
-            if (!phoneMaskInstance) return;
-
-            const unmaskedLen = phoneMaskInstance.unmaskedValue.length;
-            
-            // If empty (only prefix +998), switch back to email
-            if (unmaskedLen === 0 || phoneMaskInstance.value === '+998 ') {
-                phoneInput.style.display = 'none';
-                emailInput.style.display = 'block';
-                
-                if (authIcon) authIcon.className = 'far fa-envelope field-icon';
-                if (authLabel) authLabel.innerText = currentTab === 'register' ? 'EMAIL ДЛЯ РЕГИСТРАЦИИ' : 'EMAIL ИЛИ ТЕЛЕФОН';
-                
-                emailInput.focus();
-                emailInput.value = '';
-                validateIdentity();
-            }
-        });
     }
 
     function transitionScreens(from, to) {
@@ -183,18 +168,15 @@
                     ? 'Заполните данные, чтобы начать пользоваться всеми функциями DachaGo.' 
                     : 'Войдите в аккаунт, чтобы продолжить поиск вашей идеальной дачи.';
                 
-                emailInput.placeholder = target === 'register' ? 'example@mail.com' : 'example@mail.com или +998...';
-                if (authLabel) authLabel.innerText = target === 'register' ? 'EMAIL ДЛЯ РЕГИСТРАЦИИ' : 'EMAIL ИЛИ ТЕЛЕФОН';
+                identityInput.placeholder = target === 'register' ? 'example@mail.com' : 'example@mail.com или +998...';
+                if (identityLabel) identityLabel.innerText = target === 'register' ? 'EMAIL ДЛЯ РЕГИСТРАЦИИ' : 'EMAIL ИЛИ ТЕЛЕФОН';
 
                 submitBtn.querySelector('.btn-text').innerText = target === 'register' ? 'Зарегистрироваться' : 'Войти';
                 clearErrors();
                 
-                // Reset fields on tab switch
-                phoneInput.style.display = 'none';
-                emailInput.style.display = 'block';
-                emailInput.value = '';
-                if (phoneMaskInstance) phoneMaskInstance.value = '';
-                if (authIcon) authIcon.className = 'far fa-envelope field-icon';
+                // Reset field
+                if (identityMask) identityMask.value = '';
+                if (identityIcon) identityIcon.className = 'far fa-envelope field-icon';
 
                 validateForm();
             });
@@ -204,7 +186,7 @@
     function setupRealtimeValidation() {
         const validateField = (input, validator) => {
             input.addEventListener('input', () => {
-                if (input === emailInput || input === phoneInput) return; // Handled specially
+                if (input === identityInput) return; // Handled by dynamic mask accept
 
                 const wrapper = input.closest('.input-wrapper');
                 if (validator(input.value)) {
@@ -250,15 +232,17 @@
         
         // Check Identity
         let identityOk = false;
-        if (phoneInput.style.display === 'block' && phoneMaskInstance) {
-            identityOk = phoneMaskInstance.unmaskedValue.length === 12;
-        } else {
-            const val = emailInput.value.trim();
+        const val = identityInput.value.trim();
+        const isEmail = /[a-zA-Z@]/.test(val);
+
+        if (isEmail) {
             if (currentTab === 'register') {
                 identityOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
             } else {
                 identityOk = val.length > 0;
             }
+        } else {
+            identityOk = identityMask && identityMask.unmaskedValue.length === 12;
         }
 
         if (currentTab === 'register') {
@@ -379,10 +363,13 @@
         const name = nameInput.value.trim();
         
         let identity = '';
-        if (phoneInput.style.display === 'block' && phoneMaskInstance) {
-            identity = '+' + phoneMaskInstance.unmaskedValue;
-        } else {
-            identity = emailInput.value.trim();
+        const val = identityInput.value.trim();
+        const isEmail = /[a-zA-Z@]/.test(val);
+
+        if (isEmail) {
+            identity = val;
+        } else if (identityMask) {
+            identity = '+' + identityMask.unmaskedValue;
         }
 
         const password = passwordInput.value;
