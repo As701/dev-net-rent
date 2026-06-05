@@ -22,12 +22,13 @@
 
     const otpInputs = document.querySelectorAll('.otp-input');
 
-    const nameInput = document.getElementById('input-name');
-    const identityInput = document.getElementById('input-identity');
+    // Robust Selectors for Data Extraction
+    const nameInput = document.getElementById('input-name') || document.querySelector('input[placeholder="Введите имя"]');
+    const identityInput = document.getElementById('input-identity') || document.getElementById('auth-username') || document.querySelector('input[type="text"]');
     const identityIcon = document.getElementById('identity-icon');
     const identityLabel = document.getElementById('auth-label');
 
-    const passwordInput = document.getElementById('input-password');
+    const passwordInput = document.getElementById('input-password') || document.querySelector('input[type="password"]');
     const confirmInput = document.getElementById('input-confirm');
     const passReqsBox = document.getElementById('pass-reqs');
 
@@ -201,11 +202,12 @@
             });
         };
 
-        validateField(nameInput, val => val.trim().length >= 2);
-        validateField(passwordInput, val => val.length >= 8);
+        if (nameInput) validateField(nameInput, val => val.trim().length >= 2);
+        if (passwordInput) validateField(passwordInput, val => val.length >= 8);
     }
 
     function validatePasswordReqs() {
+        if (!passwordInput) return;
         const val = passwordInput.value;
         const reqs = {
             len: val.length >= 8,
@@ -221,7 +223,7 @@
     }
 
     function validateConfirm() {
-        if (currentTab !== 'register') return;
+        if (currentTab !== 'register' || !confirmInput || !passwordInput) return;
         const wrapper = confirmInput.closest('.input-wrapper');
         const match = confirmInput.value === passwordInput.value && confirmInput.value.length > 0;
         wrapper.classList.toggle('valid', match);
@@ -246,16 +248,16 @@
         }
 
         if (currentTab === 'register') {
-            const nameOk = nameInput.value.trim().length >= 2;
-            const passOk = passwordInput.value.length >= 8 && 
+            const nameOk = nameInput ? nameInput.value.trim().length >= 2 : false;
+            const passOk = passwordInput ? (passwordInput.value.length >= 8 && 
                            /[a-z]/.test(passwordInput.value) && 
                            /[A-Z]/.test(passwordInput.value) && 
                            /\d/.test(passwordInput.value) && 
-                           /[!@#$%^&*]/.test(passwordInput.value);
-            const confirmOk = confirmInput.value === passwordInput.value;
+                           /[!@#$%^&*]/.test(passwordInput.value)) : false;
+            const confirmOk = (confirmInput && passwordInput) ? confirmInput.value === passwordInput.value : false;
             isValid = nameOk && identityOk && passOk && confirmOk;
         } else {
-            isValid = identityOk && passwordInput.value.length > 0;
+            isValid = identityOk && (passwordInput ? passwordInput.value.length > 0 : false);
         }
         submitBtn.disabled = !isValid;
     }
@@ -296,7 +298,6 @@
 
         setLoading(true, verifyBtn);
         try {
-            // UPDATED ENDPOINT for API v1
             const response = await fetch(`${API_URL}/auth/verify-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -307,7 +308,6 @@
 
             if (response.ok) {
                 transitionScreens(screenOtp, screenSuccess);
-                // Support both 'access_token' and 'token' keys
                 const token = data.access_token || data.token;
                 if (token) localStorage.setItem('token', token);
                 if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
@@ -333,9 +333,9 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    name: nameInput.value, 
+                    name: nameInput ? nameInput.value.trim() : "", 
                     email: userEmail, 
-                    password: passwordInput.value 
+                    password: passwordInput ? passwordInput.value : "" 
                 })
             });
             if (response.ok) {
@@ -363,14 +363,11 @@
     function getCleanIdentifier() {
         if (!identityInput) return '';
         const rawValue = identityInput.value.trim();
-        
-        // Check if it's an email (contains letters or @)
         const isEmail = /[a-zA-Z@]/.test(rawValue);
         
         if (isEmail) {
             return rawValue;
         } else {
-            // It's a phone: strip formatting but keep the plus
             return rawValue.replace(/[\s-()]/g, '');
         }
     }
@@ -379,9 +376,9 @@
     async function handleSubmit(e) {
         e.preventDefault();
         
-        const name = nameInput.value.trim();
+        const name = nameInput ? nameInput.value.trim() : "";
         const identifier = getCleanIdentifier();
-        const password = passwordInput.value;
+        const password = passwordInput ? passwordInput.value : "";
 
         if (!identifier || !password) {
             showError('identity', 'Заполните это поле');
@@ -410,7 +407,7 @@
                 setLoading(false, submitBtn);
             }
         } else {
-            // Login - UPDATED KEY TO 'email' for API v1
+            // Login
             try {
                 const response = await fetch(`${API_URL}/auth/login`, {
                     method: 'POST',
