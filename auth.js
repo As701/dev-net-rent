@@ -190,20 +190,27 @@
                 if (input === identityInput) return; // Handled by dynamic mask accept
 
                 const wrapper = input.closest('.input-wrapper');
-                if (validator(input.value)) {
+                if (validator && validator(input.value)) {
                     wrapper.classList.add('valid');
                     wrapper.classList.remove('error');
-                } else {
+                } else if (validator) {
                     wrapper.classList.remove('valid');
                 }
-                if (input === passwordInput) validatePasswordReqs();
-                if (input === confirmInput || input === passwordInput) validateConfirm();
+                
+                if (input === passwordInput) {
+                    validatePasswordReqs();
+                    validateConfirm(); // Check match if main password changes
+                }
+                if (input === confirmInput) {
+                    validateConfirm(); // Check match if confirm field changes
+                }
                 validateForm();
             });
         };
 
         if (nameInput) validateField(nameInput, val => val.trim().length >= 2);
         if (passwordInput) validateField(passwordInput, val => val.length >= 8);
+        if (confirmInput) validateField(confirmInput, null); // Handled by validateConfirm
     }
 
     function validatePasswordReqs() {
@@ -225,8 +232,23 @@
     function validateConfirm() {
         if (currentTab !== 'register' || !confirmInput || !passwordInput) return;
         const wrapper = confirmInput.closest('.input-wrapper');
-        const match = confirmInput.value === passwordInput.value && confirmInput.value.length > 0;
-        wrapper.classList.toggle('valid', match);
+        const passValue = passwordInput.value;
+        const confirmValue = confirmInput.value;
+
+        if (confirmValue.length === 0) {
+            wrapper.classList.remove('valid', 'error');
+            return;
+        }
+
+        const match = passValue === confirmValue && passValue.length > 0;
+        
+        if (match) {
+            wrapper.classList.add('valid');
+            wrapper.classList.remove('error');
+        } else {
+            wrapper.classList.remove('valid');
+            wrapper.classList.add('error');
+        }
     }
 
     function validateForm() {
