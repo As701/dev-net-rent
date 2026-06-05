@@ -85,16 +85,6 @@
         .input-wrapper i.field-icon { color: var(--text-light); font-size: 16px; width: 20px; text-align: center; }
         .input-wrapper input { border: none; background: transparent; outline: none; width: 100%; font-weight: 500; color: var(--text-dark); }
 
-        /* Country Prefix Styling */
-        .country-prefix {
-            font-weight: 600;
-            color: var(--text-dark);
-            font-size: 16px;
-            display: none; /* Hidden by default, shown in phone mode */
-        }
-        .phone-mode .country-prefix { display: block; }
-        .phone-mode #identity-icon { display: none; }
-
         .valid-check { color: var(--success-green); font-size: 14px; display: none; }
         .input-wrapper.valid .valid-check { display: block; }
 
@@ -142,14 +132,12 @@
 </head>
 <body>
     <div class="auth-container">
-        <!-- HEADER -->
         <div class="header" id="auth-header">
             <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
             <h1 id="auth-title">С возвращением!</h1>
             <p class="subtitle" id="auth-subtitle">Войдите в аккаунт, чтобы продолжить поиск вашей идеальной дачи.</p>
         </div>
 
-        <!-- SCREEN 1: INPUT -->
         <div id="screen-input" class="screen active">
             <div class="tabs">
                 <div class="tab active" data-tab="login">Вход</div>        
@@ -171,7 +159,6 @@
                     <label id="identity-label">Email или телефон</label>
                     <div class="input-wrapper" id="identity-wrapper">
                         <i class="far fa-envelope field-icon" id="identity-icon"></i>
-                        <span class="country-prefix" id="identity-prefix">+998</span>
                         <input type="text" id="input-identity" placeholder="example@mail.com или +998...">
                         <i class="fas fa-check-circle valid-check"></i>        
                     </div>
