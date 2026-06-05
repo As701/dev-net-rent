@@ -1,5 +1,6 @@
 (function() {
     let currentTab = 'login';
+    let loginMask = null;
 
     const API_URL = window.DachaGoConfig?.apiUrl || 'https://dachago-server.onrender.com/api/v1';
 
@@ -26,35 +27,40 @@
     function setupIdentityInput() {
         identityInput.addEventListener('input', (e) => {
             let val = identityInput.value.trim();
-            
-            if (currentTab === 'register') {
-                // In Registration, we enforce Email + Password logic as per previous TZ, 
-                // but if we want to support dynamic switching here too:
-                updateIdentityUI(val);
-            } else {
-                updateIdentityUI(val);
-            }
+            updateIdentityUI(val);
             validateForm();
         });
     }
 
     function updateIdentityUI(val) {
         if (!val) {
+            if (loginMask) { loginMask.destroy(); loginMask = null; }
             identityIcon.className = 'far fa-envelope field-icon';
             identityWrapper.classList.remove('phone-mode');
+            identityInput.placeholder = "example@mail.com или +998...";
             return;
         }
 
-        // TZ Logic: strictly digits, optional plus, spaces, or hyphens = Phone
-        const phonePattern = /^\+?[0-9\s-]+$/;
-        const isPotentialPhone = phonePattern.test(val);
+        // TZ Logic: Strictly digits, spaces, hyphens, or starting with +
+        const isPotentialPhone = /^\+?[0-9\s-]*$/.test(val);
         const hasEmailSymbols = val.includes('@') || /[a-zA-Z]/.test(val);
 
-        if (isPotentialPhone && !hasEmailSymbols) {
+        if (isPotentialPhone && !hasEmailSymbols && currentTab === 'login') {
             identityIcon.className = 'fas fa-phone field-icon';
             identityWrapper.classList.add('phone-mode');
-            identityInput.placeholder = "(90) 000-00-00";
+            
+            // Dynamic IMask initialization
+            if (!loginMask) {
+                loginMask = IMask(identityInput, {
+                    mask: '+{998} (00) 000-00-00',
+                    lazy: true,
+                    eager: true,
+                    overwrite: true
+                });
+            }
         } else {
+            // Email mode
+            if (loginMask) { loginMask.destroy(); loginMask = null; }
             identityIcon.className = 'far fa-envelope field-icon';
             identityWrapper.classList.remove('phone-mode');
             identityInput.placeholder = "example@mail.com";
@@ -97,19 +103,16 @@
 
     function validateForm() {
         if (currentTab === 'login') {
-            submitBtn.disabled = !(identityInput.value.length > 5 && passwordInput.value.length >= 8);
+            const val = loginMask ? loginMask.unmaskedValue : identityInput.value.trim();
+            submitBtn.disabled = !(val.length > 5 && passwordInput.value.length >= 8);
             return;
         }
         const nameOk = nameInput.value.trim().length >= 2;
         const identVal = identityInput.value.trim();
-        
-        // Strictly Email for registration as per TZ "Email + OTP"
         const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identVal);
-        const identOk = isEmail;
-        
         const passOk = passwordInput.closest('.input-wrapper').classList.contains('valid');
         const confirmOk = confirmInput.value === passwordInput.value && confirmInput.value.length > 0;
-        submitBtn.disabled = !(nameOk && identOk && passOk && confirmOk);      
+        submitBtn.disabled = !(nameOk && isEmail && passOk && confirmOk);      
     }
 
     function setupTabs() {
@@ -126,13 +129,16 @@
                 passReqsBox.classList.toggle('visible', target === 'register');
                 
                 if (target === 'register') {
+                    if (loginMask) { loginMask.destroy(); loginMask = null; }
                     identityLabel.innerText = "Email для регистрации";
                     identityInput.placeholder = "example@mail.com";
                     identityWrapper.classList.remove('phone-mode');
                     identityIcon.className = 'far fa-envelope field-icon';
+                    identityInput.value = "";
                 } else {
                     identityLabel.innerText = "Email или телефон";
-                    updateIdentityUI(identityInput.value.trim());
+                    identityInput.value = "";
+                    updateIdentityUI("");
                 }
 
                 submitBtn.querySelector('.btn-text').innerText = target === 'register' ? 'Зарегистрироваться' : 'Войти';
@@ -155,15 +161,14 @@
     async function handleSubmit(e) {
         e.preventDefault();
         const name = nameInput.value.trim();
-        let identity = identityInput.value.trim();
+        let identity = loginMask ? loginMask.value : identityInput.value.trim();
         const password = passwordInput.value;
 
-        // If phone mode is active, prepend +998 and clean digits
-        if (identityWrapper.classList.contains('phone-mode')) {
-            const cleanDigits = identity.replace(/\D/g, '');
-            identity = `+998${cleanDigits}`;
+        // Final formatting for API
+        if (loginMask) {
+            identity = `+998${loginMask.unmaskedValue}`;
         } else {
-            identity = identity.toLowerCase(); // Email always lowercase
+            identity = identity.toLowerCase();
         }
 
         setLoading(true);
