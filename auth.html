@@ -14,30 +14,31 @@
             --text-dark: #1A1D1E;
             --text-light: #9BA5B7;
             --danger-red: #EA5455;
-            --success-green: #2ECC71;
+            --success-green: #28C76F;
             --border-color: #F0F3F6;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: white;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100dvh;
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: white; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100dvh; 
             color: var(--text-dark);
             overflow-x: hidden;
         }
 
+        /* Mobile Fixes for iPhone */
         input, textarea, select {
             font-size: 18px !important;
             -webkit-text-size-adjust: 100%;
         }
 
-        .auth-container {
-            padding: 30px 25px 60px;
-            flex: 1;
+        .auth-container { 
+            padding: 30px 25px 60px; 
+            flex: 1; 
             display: flex;
             flex-direction: column;
             max-width: 500px;
@@ -51,29 +52,24 @@
         .back-btn:active { transform: scale(0.95); }
 
         h1 { font-weight: 800; font-size: 28px; margin: 0 0 8px 0; }
-        p.subtitle { color: var(--text-light); font-size: 14px; margin: 0 0 32px 0; line-height: 1.5; }
+        p.subtitle { color: var(--text-light); font-size: 14px; margin: 0 0 32px 0; line-height: 1.5; }        
 
-        .screen { display: none; }
-        .screen.active { display: block; animation: screenIn 0.4s ease-out; }  
-        @keyframes screenIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        /* Tabs */
         .tabs { display: flex; background: var(--soft-gray); padding: 5px; border-radius: 18px; margin-bottom: 30px; }
         .tab { flex: 1; padding: 12px; text-align: center; border-radius: 14px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s; color: var(--text-light); }
         .tab.active { color: var(--primary-blue); background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
 
+        /* Form Controls */
         .form-group { margin-bottom: 20px; position: relative; }
         .form-group label { display: block; font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.5px; }
-
-        .input-wrapper {
-            background: var(--soft-gray);
-            border-radius: 18px;
-            padding: 14px 18px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        
+        .input-wrapper { 
+            background: var(--soft-gray); 
+            border-radius: 18px; 
+            padding: 14px 18px; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
             border: 2px solid transparent;
             transition: all 0.2s;
             position: relative;
@@ -91,25 +87,87 @@
         .toggle-pass { color: var(--text-light); cursor: pointer; padding: 5px; }
         .error-msg { color: var(--danger-red); font-size: 11px; font-weight: 600; margin-top: 6px; padding-left: 5px; min-height: 14px; }
 
+        /* Password Requirements */
         .pass-requirements { margin: 10px 5px 20px; display: none; }
         .pass-requirements.visible { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .req-item { font-size: 12px; color: var(--text-light); display: flex; align-items: center; gap: 6px; font-weight: 600; transition: all 0.3s; }        
+        .req-item { font-size: 12px; color: var(--text-light); display: flex; align-items: center; gap: 6px; font-weight: 600; transition: all 0.3s; }
         .req-item i { font-size: 10px; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid #D1D8E0; transition: all 0.3s; color: transparent; }
         .req-item.met { color: var(--success-green); }
         .req-item.met i { border-color: var(--success-green); color: var(--success-green); }
 
-        .submit-btn {
-            width: 100%;
-            background: var(--primary-blue);
-            color: white;
-            border: none;
-            padding: 18px;
-            border-radius: 20px;
+        /* OTP DISPLAY - 6 SQUARES */
+        .otp-inputs {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .otp-input {
+            width: 45px;
+            height: 55px;
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 24px;
             font-weight: 800;
-            font-size: 16px;
-            margin-top: 10px;
-            box-shadow: 0 10px 25px rgba(37, 153, 200, 0.2);
-            cursor: pointer;
+            text-align: center;
+            color: var(--brand-color);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            outline: none;
+        }
+        .otp-input:focus {
+            border-color: var(--brand-color);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(43, 150, 205, 0.2);
+        }
+        
+        .timer-text { font-size: 13px; color: var(--text-light); margin: 20px 0; font-weight: 600; text-align: center; }
+        .resend-link { font-size: 14px; font-weight: 800; color: var(--brand-color); text-decoration: none; transition: 0.3s; display: block; text-align: center; }
+        .resend-link.disabled { color: #D1D8E0; pointer-events: none; }
+
+        /* Success Card with Neon Glow */
+        .success-card {
+            background: white;
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 0 30px rgba(43, 150, 205, 0.4);
+            display: inline-block;
+            margin-top: 40px;
+        }
+        .checkmark-svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+        }
+        .checkmark-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: var(--success-green); fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
+        .checkmark-check { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; stroke: var(--success-green); stroke-width: 4; fill: none; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards; }
+
+        @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+
+        /* Multi-step transitions */
+        .screen { display: none; opacity: 1; transform: translateY(0); transition: all 0.4s ease; }
+        .screen.active { display: block; }
+        .screen.fade-out { opacity: 0 !important; transform: translateY(-20px) !important; display: block !important; }
+        .screen.fade-in { display: block !important; animation: fadeIn 0.4s ease forwards !important; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Submit Button */
+        .submit-btn { 
+            width: 100%; 
+            background: var(--primary-blue); 
+            color: white; 
+            border: none; 
+            padding: 18px; 
+            border-radius: 20px; 
+            font-weight: 800; 
+            font-size: 16px; 
+            margin-top: 10px; 
+            box-shadow: 0 10px 25px rgba(37, 153, 200, 0.2); 
+            cursor: pointer; 
             transition: all 0.3s;
             display: flex;
             align-items: center;
@@ -132,15 +190,17 @@
 </head>
 <body>
     <div class="auth-container">
+        <!-- HEADER -->
         <div class="header" id="auth-header">
             <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
             <h1 id="auth-title">С возвращением!</h1>
             <p class="subtitle" id="auth-subtitle">Войдите в аккаунт, чтобы продолжить поиск вашей идеальной дачи.</p>
         </div>
 
+        <!-- SCREEN 1: INPUT -->
         <div id="screen-input" class="screen active">
             <div class="tabs">
-                <div class="tab active" data-tab="login">Вход</div>        
+                <div class="tab active" data-tab="login">Вход</div>
                 <div class="tab" data-tab="register">Регистрация</div>
             </div>
 
@@ -150,17 +210,17 @@
                     <div class="input-wrapper">
                         <i class="far fa-user field-icon"></i>
                         <input type="text" id="input-name" placeholder="Введите имя">
-                        <i class="fas fa-check-circle valid-check"></i>        
+                        <i class="fas fa-check-circle valid-check"></i>
                     </div>
                     <div class="error-msg" id="error-name"></div>
                 </div>
 
                 <div class="form-group">
-                    <label id="identity-label">Email или телефон</label>
-                    <div class="input-wrapper" id="identity-wrapper">
+                    <label>Email или телефон</label>
+                    <div class="input-wrapper">
                         <i class="far fa-envelope field-icon" id="identity-icon"></i>
                         <input type="text" id="input-identity" placeholder="example@mail.com или +998...">
-                        <i class="fas fa-check-circle valid-check"></i>        
+                        <i class="fas fa-check-circle valid-check"></i>
                     </div>
                     <div class="error-msg" id="error-identity"></div>
                 </div>
@@ -171,10 +231,10 @@
                         <i class="fas fa-lock field-icon"></i>
                         <input type="password" id="input-password" placeholder="••••••••">
                         <i class="far fa-eye toggle-pass"></i>
-                        <i class="fas fa-check-circle valid-check" style="right: 45px;"></i>
                     </div>
                     <div class="error-msg" id="error-password"></div>
 
+                    <!-- Password Requirements Checklist -->
                     <div class="pass-requirements" id="pass-reqs">
                         <div class="req-item" data-req="len"><i>✓</i> Минимум 8 символов</div>
                         <div class="req-item" data-req="case"><i>✓</i> Заглавная и строчная</div>
@@ -184,17 +244,16 @@
                 </div>
 
                 <div class="form-group" id="group-confirm" style="display: none;">
-                    <label>Подтверждение пароля</label>     
+                    <label>Подтверждение пароля</label>
                     <div class="input-wrapper">
                         <i class="fas fa-lock field-icon"></i>
                         <input type="password" id="input-confirm" placeholder="••••••••">
                         <i class="far fa-eye toggle-pass"></i>
-                        <i class="fas fa-check-circle valid-check" style="right: 45px;"></i>
                     </div>
                     <div class="error-msg" id="error-confirm"></div>
                 </div>
 
-                <button type="submit" class="submit-btn" id="btn-submit">      
+                <button type="submit" class="submit-btn" id="btn-submit">
                     <span class="loader"></span>
                     <span class="btn-text">Войти</span>
                 </button>
@@ -206,6 +265,47 @@
                 <div class="social-btn" onclick="alert('Apple Auth soon')"><i class="fab fa-apple"></i></div>
             </div>
         </div>
+
+        <!-- SCREEN 2: OTP -->
+        <div id="screen-otp" class="screen">
+            <div style="margin-bottom: 25px;">
+                <a href="#" id="back-to-input" style="color: var(--text-dark); text-decoration: none; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-chevron-left"></i> Назад
+                </a>
+            </div>
+            <h1 style="text-align: center; font-size: 24px; margin-bottom: 10px;">Введите код</h1>
+            <p class="subtitle" style="text-align: center; margin-bottom: 30px;">Мы отправили 6-значный код на <br><strong id="display-user-email" style="color: var(--text-dark);"></strong></p>
+            
+            <div class="otp-inputs" id="otp-inputs-grid">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*">
+            </div>
+
+            <div class="timer-text" id="otp-timer">Отправить повторно через 00:59</div>
+            <a href="#" id="resend-otp" class="resend-link disabled">Отправить код повторно</a>
+
+            <button class="submit-btn" id="btn-verify-otp" style="margin-top: 30px;">
+                <span class="loader"></span>
+                <span class="btn-text">Подтвердить</span>
+            </button>
+        </div>
+
+        <!-- SCREEN 3: SUCCESS -->
+        <div id="screen-success" class="screen" style="text-align: center;">
+            <div class="success-card">
+                <svg class="checkmark-svg" viewBox="0 0 52 52">
+                    <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                    <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+                <h1 style="font-size: 22px; margin-bottom: 10px;">Verified successfully</h1>
+                <p class="subtitle" style="margin-bottom: 0;">Добро пожаловать в DachaGo!</p>
+            </div>
+        </div>
+
     </div>
 
     <script src="https://unpkg.com/imask"></script>
