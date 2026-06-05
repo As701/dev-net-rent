@@ -287,7 +287,10 @@
     function setupPasswordToggle() {
         document.querySelectorAll('.toggle-pass').forEach(btn => {
             btn.addEventListener('click', () => {
-                const input = btn.previousElementSibling;
+                const wrapper = btn.closest('.input-wrapper');
+                const input = wrapper.querySelector('input');
+                if (!input) return;
+
                 const isPass = input.type === 'password';
                 input.type = isPass ? 'text' : 'password';
                 btn.classList.toggle('fa-eye', !isPass);
