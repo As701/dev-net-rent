@@ -33,9 +33,8 @@
         if (!phoneMaskInstance && identityInput) {
             phoneMaskInstance = IMask(identityInput, {
                 mask: '+{998} (00) 000-00-00',
-                lazy: true,
-                eager: true,
-                overwrite: true
+                lazy: false,
+                eager: true
             });
             // Trigger validation on mask change
             phoneMaskInstance.on('accept', () => {
@@ -98,24 +97,41 @@
     function setupIdentityHandler() {
         if (!identityInput) return;
 
-        identityInput.addEventListener('input', () => {
-            const rawValue = identityInput.value.trim();
+        identityInput.addEventListener('input', (e) => {
+            if (e.detail && e.detail.unmasked) return;
+
             const identityIcon = document.getElementById('identity-icon');
             const identityLabel = document.querySelector('label[for="input-identity"]') || document.querySelector('.form-group:nth-child(2) label');
             
-            // Determine if it's a phone attempt (starts with digit or +)
-            const isPhoneAttempt = rawValue === '' || /^\+?[0-9]/.test(rawValue);
+            // 1. ЖЕСТКАЯ ПРОВЕРКА НА EMAIL: есть ли буквы или @?
+            const hasEmailChars = /[a-zA-Z@]/.test(identityInput.value);
 
-            if (isPhoneAttempt) {
-                initSmartMask();
-                if (identityIcon) identityIcon.className = 'fas fa-phone field-icon';
-                if (identityLabel) identityLabel.innerText = currentTab === 'register' ? 'ТЕЛЕФОН ДЛЯ РЕГИСТРАЦИИ' : 'ТЕЛЕФОН';
-            } else {
-                destroySmartMask();
+            if (hasEmailChars) {
+                if (phoneMaskInstance) {
+                    const textBackup = identityInput.value; 
+                    destroySmartMask();
+                    identityInput.value = textBackup;
+                }
                 if (identityIcon) identityIcon.className = 'far fa-envelope field-icon';
-                if (identityLabel) identityLabel.innerText = currentTab === 'register' ? 'EMAIL ДЛЯ РЕГИСТРАЦИИ' : 'EMAIL';
+                if (identityLabel) identityLabel.innerText = currentTab === 'register' ? 'EMAIL ДЛЯ РЕГИСТРАЦИИ' : 'EMAIL ИЛИ ТЕЛЕФОН';
+                
+                validateIdentity();
+                return;
             }
 
+            // 2. ЛОГИКА ДЛЯ ТЕЛЕФОНА: если в поле ТОЛЬКО цифры (или плюс)
+            const currentValue = phoneMaskInstance ? phoneMaskInstance.unmaskedValue : identityInput.value;
+            const isDigitsOnly = /^\+?[0-9]*$/.test(currentValue.replace(/[\s-()]/g, ''));
+
+            if (isDigitsOnly && currentValue.length > 0) {
+                if (identityIcon) identityIcon.className = 'fas fa-phone field-icon';
+                if (identityLabel) identityLabel.innerText = currentTab === 'register' ? 'ТЕЛЕФОН ДЛЯ РЕГИСТРАЦИИ' : 'ТЕЛЕФОН';
+                initSmartMask();
+            } else if (currentValue.length === 0) {
+                destroySmartMask();
+                if (identityLabel) identityLabel.innerText = currentTab === 'register' ? 'Email адрес' : 'Email или телефон';
+            }
+            
             if (!phoneMaskInstance) {
                 validateIdentity();
             }
