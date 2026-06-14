@@ -207,6 +207,10 @@
         .nav-create { position: relative; margin-top: -65px; }
         .create-btn { background: var(--brand-blue); width: 74px; height: 74px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 26px; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.4); border: 6px solid var(--white); cursor: pointer; transition: 0.3s; }
         .create-btn:active { transform: scale(0.9); }
+    
+        /* Flicker Prevention */
+        #profile-app { display: none; }
+        #profile-app.loaded { display: block; }
     </style>
 </head>
 <body>

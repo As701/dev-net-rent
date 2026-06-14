@@ -14,23 +14,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         statusLabel: document.getElementById('status-label')
     };
 
+    // --- ПРОВЕРКА АВТОРИЗАЦИИ ---
     if (!token) {
         renderGuestState();
     } else {
-        await fetchProfile();
+        // --- OPTIMISTIC UI: Сразу показываем данные из кэша ---
+        const cachedUser = localStorage.getItem('user');
+        if (cachedUser) {
+            try {
+                renderProfile(JSON.parse(cachedUser));
+            } catch (e) {
+                console.error('Error parsing cached user', e);
+            }
+        }
+        // Фоновое обновление
+        fetchProfile();
     }
 
     function renderGuestState() {
         if (elements.app) {
             elements.app.innerHTML = `
                 <div style="padding: 100px 24px; text-align: center;">
-                    <div style="width: 100px; height: 100px; background: #E3F2FD; border-radius: 35px; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px; font-size: 40px; color: #2b96cd;">        
+                    <div style="width: 100px; height: 100px; background: #E3F2FD; border-radius: 35px; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px; font-size: 40px; color: #2b96cd;">
                         <i class="fas fa-user-lock"></i>
                     </div>
                     <h2 style="font-weight: 900; font-size: 24px; margin-bottom: 10px;">Личный кабинет</h2>
                     <p style="color: #9BA5B7; font-size: 15px; margin-bottom: 40px; line-height: 1.6;">Войдите в аккаунт, чтобы управлять своими объявлениями, бронированиями и профилем.</p>
                     <a href="auth.html" style="display: block; background: #2b96cd; color: white; padding: 18px; border-radius: 20px; text-decoration: none; font-weight: 800; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.3);">Войти / Регистрация</a>
                 </div>`;
+            elements.app.classList.add('loaded');
         }
     }
 
@@ -43,9 +55,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            if (!response.ok) {
-                localStorage.clear();
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
                 renderGuestState();
+                return;
+            }
+
+            if (!response.ok) {
+                if (!localStorage.getItem('user')) renderGuestState();
                 return;
             }
 
@@ -54,27 +72,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderProfile(user);
         } catch (error) {
             console.error('Error fetching profile:', error);
-            const cachedUser = JSON.parse(localStorage.getItem('user'));
-            if (cachedUser) renderProfile(cachedUser);
-            else renderGuestState();
+            if (!localStorage.getItem('user')) renderGuestState();
         }
     }
 
     function renderProfile(user) {
         if (elements.name) elements.name.innerText = user.name || 'Пользователь';
         if (elements.phone) elements.phone.innerText = user.phone || user.email || 'Телефон не указан';
-        
-        // 1. АВАТАРКА: Если нет фото, генерируем через DiceBear
+
         if (elements.avatar) {
             let avatarUrl = user.avatar_url;
             if (!avatarUrl) {
                 avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`;
-            } else if (avatarUrl.startsWith('/storage')) {
+            } else if (avatarUrl && avatarUrl.startsWith('/storage')) {
                 avatarUrl = BASE_URL + avatarUrl;
             }
-            elements.avatar.src = avatarUrl;
+            if (avatarUrl) elements.avatar.src = avatarUrl;
         }
-        
+
         if (elements.id) elements.id.innerText = user.user_id_code || user.id || 'N/A';
 
         if (elements.statusLabel && elements.statusDot) {
@@ -82,12 +97,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             elements.statusLabel.innerText = `Роль: ${userRole}`;
             elements.statusDot.classList.add('verified');
         }
-        
+
         if (elements.logout) {
-            elements.logout.addEventListener('click', () => {
-                localStorage.clear();
-                window.location.href = 'index.html';
-            });
+            elements.logout.onclick = () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.replace('index.html');
+            };
         }
+        
+        if (elements.app) elements.app.classList.add('loaded');
     }
 });

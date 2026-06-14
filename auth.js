@@ -336,7 +336,7 @@
                 const token = data.access_token || data.token;
                 if (token) localStorage.setItem('token', token);
                 if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
-                setTimeout(() => { window.location.href = 'index.html'; }, 2500);
+                setTimeout(() => { window.location.replace('index.html'); }, 2500);
             } else {
                 alert(data.detail || data.message || 'Неверный код подтверждения');
                 otpInputs.forEach(i => i.value = '');
@@ -444,7 +444,7 @@
                     const token = data.access_token || data.token;
                     if (token) localStorage.setItem('token', token);
                     if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
-                    window.location.href = 'index.html';
+                    window.location.replace('index.html');
                 } else {
                     alert(data.detail || data.message || 'Ошибка входа');
                 }
