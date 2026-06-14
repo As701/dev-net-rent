@@ -3,238 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Подтверждение кода — DachaGo</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Верификация личности - DachaGo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        /* Общие аккуратные стили страницы */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #FFFFFF;
-            margin: 0;
-            padding: 0;
+        :root {
+            --primary-blue: #2599C8;
+            --soft-gray: #F7F9FC;
+            --text-dark: #1A1D1E;
+            --text-light: #9BA5B7;
+            --white: #FFFFFF;
+            --success-green: #28C76F;
+            --danger-red: #EA5455;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--soft-gray); 
+            margin: 0; 
+            color: var(--text-dark);
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
             min-height: 100vh;
         }
-
-        .verify-container {
-            width: 100%;
-            max-width: 400px;
-            padding: 24px;
+        .header {
+            background: var(--white);
+            padding: 60px 24px 25px;
+            border-radius: 0 0 35px 35px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
             text-align: center;
-            box-sizing: border-box;
         }
-
-        h2 {
-            font-size: 24px;
-            font-weight: 700;
-            color: #000000;
-            margin-bottom: 8px;
-        }
-
-        .subtitle {
-            font-size: 14px;
-            color: #94A3B8;
-            margin-bottom: 24px;
-            line-height: 1.4;
-        }
-
-        #user-email {
-            color: #1E293B;
-            font-weight: 600;
-        }
-
-        /* НАСТРОЙКА ИЗ ТЗ: Контейнер для 6 отдельных квадратиков */
-        .code-container {
+        .back-btn {
+            position: absolute;
+            top: 55px;
+            left: 20px;
+            width: 45px;
+            height: 45px;
+            background: var(--soft-gray);
+            border-radius: 15px;
             display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 10px; /* Расстояние между ячейками */
-            margin: 24px 0;
-            width: 100%;
-        }
-
-        /* НАСТРОЙКА ИЗ ТЗ: Маленькие аккуратные квадраты, как раньше */
-        .code-input {
-            width: 45px !important;
-            height: 45px !important;
-            text-align: center;
-            font-size: 20px;
-            font-weight: 700;
-            border: 1px solid #E2E8F0;
-            border-radius: 12px;
-            background-color: #F8FAFC;
-            color: #1E293B;
-            outline: none;
-            padding: 0 !important;
-            box-sizing: border-box;
-            transition: all 0.2s ease;
-        }
-
-        .code-input:focus {
-            border-color: #3B82F6;
-            background-color: #FFFFFF;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        /* Стиль кнопки отправки */
-        .btn-submit {
-            width: 100%;
-            background-color: #4FA0C8;
-            color: white;
-            border: none;
-            padding: 14px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 14px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-bottom: 16px;
-        }
-
-        .btn-submit:disabled {
-            background-color: #CBD5E1;
-            cursor: not-allowed;
-        }
-
-        .timer-text {
-            font-size: 14px;
-            color: #64748B;
-        }
-
-        .resend-link {
-            color: #4FA0C8;
+            color: var(--text-dark);
             text-decoration: none;
-            font-weight: 500;
-            cursor: pointer;
+        }
+        .title { font-weight: 900; font-size: 22px; margin: 0; }
+        
+        .content { padding: 30px 24px; flex: 1; }
+        
+        .card {
+            background: var(--white);
+            border-radius: 30px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-weight: 800;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title i { color: var(--primary-blue); }
+
+        .input-group {
+            background: var(--soft-gray);
+            border-radius: 18px;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 15px;
+            border: 1.5px solid transparent;
+            transition: 0.3s;
+        }
+        .input-group:focus-within {
+            border-color: var(--primary-blue);
+            background: var(--white);
+        }
+        .input-group label {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+        .input-group input {
+            background: transparent;
+            border: none;
+            outline: none;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-dark);
+            width: 100%;
+        }
+
+        /* LIVENESS UI */
+        .camera-container {
+            text-align: center;
+            padding: 20px;
+            background: #f0f4f8;
+            border-radius: 25px;
+            border: 2px dashed #d1d9e0;
+            position: relative;
+        }
+        #video-wrap {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 0 auto 20px;
+            border: 5px solid white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            background: #000;
+            display: none;
+        }
+        #video-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
         }
         
-        .resend-link.disabled {
+        .gesture-box {
+            background: var(--primary-blue);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 15px;
+            font-weight: 800;
+            font-size: 13px;
+            margin-bottom: 15px;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 16px;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(37, 153, 200, 0.2);
+            transition: 0.3s;
+        }
+        .btn-primary:disabled {
+            background: #E2E8F0;
             color: #94A3B8;
-            pointer-events: none;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        
+        #preview-img-container {
+            display: none;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #preview-img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--success-green);
+        }
+
+        .status-badge {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 14px;
+            color: var(--success-green);
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
+    <header class="header">
+        <a href="profile.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
+        <h1 class="title">Верификация</h1>
+    </header>
 
-    <div class="verify-container">
-        <h2>Введите код</h2>
-        <div class="subtitle">
-            Мы отправили 6-значный код на почту<br>
-            <span id="user-email">loading...</span>
+    <div class="content">
+        <div class="card">
+            <div class="section-title"><i class="fas fa-id-card"></i> Паспортные данные</div>
+            <div class="input-group">
+                <label>Серия паспорта</label>
+                <input type="text" id="passport-series" placeholder="AA" maxlength="2" style="text-transform: uppercase;">
+            </div>
+            <div class="input-group">
+                <label>Номер паспорта</label>
+                <input type="text" id="passport-number" placeholder="1234567" maxlength="7">
+            </div>
         </div>
 
-        <div class="code-container">
-            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-            <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+        <div class="card">
+            <div class="section-title"><i class="fas fa-face-smile"></i> Liveness Check</div>
+            <div class="camera-container">
+                <div id="video-wrap">
+                    <video id="video-stream" autoplay playsinline></video>
+                </div>
+                
+                <div id="preview-img-container">
+                    <img id="preview-img" src="">
+                    <div class="status-badge" id="liveness-success"><i class="fas fa-check-circle"></i> Проверка пройдена</div>
+                </div>
+
+                <div id="gesture-display" class="gesture-box">Покажите жест: 🖖🏻</div>
+                
+                <p id="camera-hint" style="font-size: 11px; color: var(--text-light); margin-bottom: 20px;">
+                    Нам нужно убедиться, что вы — живой человек. Нажмите кнопку ниже и следуйте инструкциям.
+                </p>
+
+                <button class="btn-primary" id="start-camera-btn" style="background: white; color: var(--primary-blue); border: 1.5px solid var(--primary-blue); box-shadow: none;">
+                    Включить камеру
+                </button>
+                <button class="btn-primary" id="capture-btn" style="display: none;">
+                    Сделать снимок
+                </button>
+            </div>
         </div>
 
-        <button id="btn-verify" class="btn-submit" disabled>Подтвердить</button>
-
-        <div class="timer-text">
-            Отправить повторно через <span id="timer-count">00:59</span> 
-            <span id="resend-btn" class="resend-link disabled" style="display:none;">Отправить код повторно</span>
-        </div>
+        <button class="btn-primary" id="submit-verify-btn" disabled style="margin-top: 10px;">
+            Отправить на проверку
+        </button>
     </div>
 
-    <script>
-        (function() {
-            // Конфигурация API (подтягиваем твой текущий рабочий Render URL)
-            const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
-            
-            // Получаем email из строки браузера (?email=user@gmail.com)
-            const urlParams = new URLSearchParams(window.location.search);
-            const email = urlParams.get('email') || '';
-            document.getElementById('user-email').innerText = email;
+    <canvas id="capture-canvas" style="display: none;"></canvas>
 
-            const inputs = document.querySelectorAll('.code-input');
-            const verifyBtn = document.getElementById('btn-verify');
-
-            // Автоматическое переключение между ячейками при вводе
-            inputs.forEach((input, index) => {
-                input.addEventListener('input', (e) => {
-                    // Разрешаем только цифры
-                    input.value = input.value.replace(/[^0-9]/g, '');
-                    
-                    if (input.value.length > 0 && index < inputs.length - 1) {
-                        inputs[index + 1].focus();
-                    }
-                    checkFullCode();
-                });
-
-                // Возврат назад при нажатии Backspace
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Backspace' && input.value.length === 0 && index > 0) {
-                        inputs[index - 1].focus();
-                    }
-                });
-            });
-
-            function checkFullCode() {
-                const fullCode = Array.from(inputs).map(i => i.value).join('');
-                verifyBtn.disabled = (fullCode.length !== 6);
-            }
-
-            // НАСТРОЙКА ИЗ ТЗ: Обработка подтверждения и АВТО-ВХОД
-            verifyBtn.addEventListener('click', async () => {
-                const code = Array.from(inputs).map(i => i.value).join('');
-                verifyBtn.disabled = true;
-                verifyBtn.innerText = 'Проверка...';
-
-                try {
-                    const response = await fetch(`${API_URL}/auth/verify-email`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: email, code: code })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok && data.status === "success") {
-                        // ЖЕЛЕЗНО сохраняем токен авторизации и данные юзера в память
-                        if (data.token) {
-                            localStorage.setItem('token', data.token);
-                        }
-                        if (data.user) {
-                            localStorage.setItem('user', JSON.stringify(data.user));
-                        }
-
-                        alert("Регистрация успешно завершена! Вход выполнен.");
-                        
-                        // Отправляем пользователя сразу на главную страницу уже авторизованным
-                        window.location.href = 'index.html';
-                    } else {
-                        alert(data.message || data.detail || 'Неверный код или срок его действия истёк.');
-                        verifyBtn.disabled = false;
-                        verifyBtn.innerText = 'Подтвердить';
-                    }
-                } catch (err) {
-                    alert('Ошибка сети при верификации');
-                    verifyBtn.disabled = false;
-                    verifyBtn.innerText = 'Подтвердить';
-                }
-            });
-
-            // Простейший таймер для повторной отправки кодов
-            let timeLeft = 59;
-            const timerCount = document.getElementById('timer-count');
-            const resendBtn = document.getElementById('resend-btn');
-            
-            const timerInterval = setInterval(() => {
-                timeLeft--;
-                timerCount.innerText = `00:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    timerCount.parentElement.style.display = 'none';
-                    resendBtn.style.display = 'inline';
-                    resendBtn.classList.remove('disabled');
-                }
-            }, 1000);
-        })();
-    </script>
+    <script src="config.js"></script>
+    <script src="verify.js"></script>
 </body>
 </html>

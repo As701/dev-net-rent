@@ -1,102 +1,87 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api';
+    const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api/v1';
     
     // --- ELEMENTS ---
-    const displayName = document.getElementById('display-name');
     const container = document.getElementById('listings-container');
-    const searchInput = document.getElementById('search-input');
-    const categories = document.querySelectorAll('.category-item');
-    const filterBtn = document.querySelector('.filter-btn');
-
+    const displayName = document.getElementById('display-name');
+    const searchTrigger = document.getElementById('main-search-trigger');
+    const filterBtn = document.getElementById('filter-btn');
     const filterSheet = document.getElementById('filter-sheet');
     const filterOverlay = document.getElementById('modal-overlay');
-    const filterFooter = document.querySelector('.filter-footer');
+    const filterFooter = document.getElementById('filter-footer');
     const regionSelect = document.getElementById('filter-region');
     const citySelect = document.getElementById('filter-city');
     const cityWrap = document.getElementById('filter-city-wrap');
     const priceMinInput = document.getElementById('price-min');
     const priceMaxInput = document.getElementById('price-max');
-
     const roomChips = document.querySelectorAll('#rooms-chips .chip');
     const amenityChips = document.querySelectorAll('#amenities-chips .chip');
     const typeItems = document.querySelectorAll('.type-toggle-item');
     const typeSlider = document.getElementById('type-slider');
+    const categories = document.querySelectorAll('.category-item');
 
     const notifBtn = document.getElementById('notif-trigger');
     const notifModal = document.getElementById('notif-modal');
     const closeNotif = document.getElementById('close-notifications');
     const notifContentArea = document.getElementById('notif-content-area');
+    const notifTabs = document.querySelectorAll('.notif-tab');
+    const unreadBadge = document.getElementById('unread-count-badge');
     const headerNotifDot = document.getElementById('header-notif-dot');
+
+    const searchModal = document.getElementById('search-modal');
+    const modalSearchInput = document.getElementById('modal-search-input');
+    const executeSearchBtn = document.getElementById('execute-search');
+    const historyList = document.getElementById('history-list');
+    const clearHistoryBtn = document.getElementById('clear-history');
+    const closeSearchModalBtn = document.getElementById('close-search-modal');
+
+    // --- STATE ---
+    let allListings = [];
+    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    let searchHistory = JSON.parse(localStorage.getItem('search_history') || '[]');
+    let selectedRooms = 'any';
+    let selectedAmenities = [];
+    let selectedType = 'rent';
+    let currentNotifTab = 'unread';
+
+    // --- MOCK DATA ---
+    let notifications = JSON.parse(localStorage.getItem('dacha_notifs') || JSON.stringify([
+        { id: 1, title: "Система", message: "Добро пожаловать в DachaGo! Пройдите верификацию для бронирования.", type: "info", time: "10:30", read: false, action: "verify.html" },
+        { id: 2, title: "Торг", message: "Владелец виллы 'Royal' принял ваше предложение! Оплатите бронь в течение 10 минут.", type: "success", time: "Вчера", read: false, action: "bookings.html" }
+    ]));
 
     const locationData = {
         "Ташкентская область": ["Ташкент", "Чарвак", "Чимган", "Бельдерсай", "Бричмулла", "Ходжикент", "Паркент", "Кибрай"],
         "Самаркандская область": ["Самарканд", "Ургут"],
-        "Бухарская область": ["Бухара", "Гиждуван"],
-        "Ферганская область": ["Фергана", "Коканд"],
-        "Хорезмская область": ["Ургенч", "Хива"]
+        "Бухарская область": ["Бухара", "Гиждуван"]
     };
 
-    let allListings = [];
-    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-    let savedFilters = JSON.parse(localStorage.getItem('active_filters') || '{"min":"","max":"","type":"rent","region":"all","city":"all","rooms":"any","amenities":[]}');
-    let selectedRooms = savedFilters.rooms || 'any';
-    let selectedAmenities = savedFilters.amenities || [];
-    let selectedType = savedFilters.type;
-
-    const getUser = () => JSON.parse(localStorage.getItem('user'));
-    const getToken = () => localStorage.getItem('token');
-
-    function updateGreeting() {
-        const user = getUser();
-        if (user) {
-            if (displayName) displayName.innerText = user.name || 'Пользователь';
-            if (headerNotifDot) headerNotifDot.classList.add('active');
-        } else {
-            if (displayName) displayName.innerHTML = '<a href="auth.html" style="text-decoration:none; color:var(--text-light);">Войти</a>';
-            if (headerNotifDot) headerNotifDot.classList.remove('active');
+    const mockListings = [
+        {
+            id: "1", title: "Вилла 'Royal' с панорамным видом", location: "Чарвак, Ташкентская обл.", price: 2500000, type: "rent", category: "villas",
+            image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80",
+            is_bargaining_enabled: true, details: { beds: 5, baths: 3, capacity: 12, rooms: 5 }
+        },
+        {
+            id: "2", title: "Уютная дача у леса", location: "Бочка, Ташкентская обл.", price: 1200000, type: "rent", category: "dachas",
+            image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80",
+            is_bargaining_enabled: false, details: { beds: 3, baths: 1, capacity: 8, rooms: 3 }
         }
-    }
+    ];
 
-    function showNotifications() {
-        if (!notifModal || !notifContentArea) return;
-        notifModal.style.display = 'flex'; document.body.classList.add('hide-nav');
-        const user = getUser();
-        if (!user) {
-            notifContentArea.innerHTML = `
-                <div class="guest-state">
-                    <i class="fas fa-lock"></i>
-                    <h3>Уведомления доступны только авторизованным пользователям</h3>
-                    <p>Войдите в аккаунт, чтобы просматривать историю оповещений и ответов на запросы.</p>      
-                    <a href="auth.html" class="login-btn-pro">Войти в профиль</a>
-                </div>`;
-            return;
-        }
-        renderNotificationList();
-    }
-
-    if (notifBtn) notifBtn.onclick = showNotifications;
-    if (closeNotif) closeNotif.onclick = () => { notifModal.style.display = 'none'; document.body.classList.remove('hide-nav'); };
-
-    const navMessages = document.getElementById('nav-messages');
-    if (navMessages) {
-        navMessages.onclick = (e) => {
-            if (!getUser()) {
-                e.preventDefault();
-                alert('Пожалуйста, войдите в аккаунт для просмотра сообщений');
-                window.location.href = 'auth.html';
-            }
-        };
-    }
-
-    if (regionSelect) {
-        Object.keys(locationData).forEach(reg => {
-            const opt = document.createElement('option');
-            opt.value = reg; opt.textContent = reg;
-            regionSelect.appendChild(opt);
-        });
-        regionSelect.onchange = () => {
-            const reg = regionSelect.value;
-            if (citySelect) {
+    // --- INITIALIZATION ---
+    function init() {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user && displayName) displayName.innerText = user.name;
+        
+        if (regionSelect) {
+            Object.keys(locationData).forEach(reg => {
+                const opt = document.createElement('option');
+                opt.value = reg; opt.textContent = reg;
+                regionSelect.appendChild(opt);
+            });
+            regionSelect.onchange = () => {
+                const reg = regionSelect.value;
                 citySelect.innerHTML = '<option value="all">Все города</option>';
                 if (reg !== 'all' && locationData[reg]) {
                     locationData[reg].forEach(c => {
@@ -104,67 +89,44 @@ document.addEventListener('DOMContentLoaded', async () => {
                         opt.value = c; opt.textContent = c;
                         citySelect.appendChild(opt);
                     });
-                    if (cityWrap) cityWrap.style.display = 'flex';
-                } else if (cityWrap) cityWrap.style.display = 'none';
-            }
-        };
-    }
-
-    function applySavedToUI() {
-        if (priceMinInput) priceMinInput.value = savedFilters.min;
-        if (priceMaxInput) priceMaxInput.value = savedFilters.max;
-        if (regionSelect) {
-            regionSelect.value = savedFilters.region;
-            regionSelect.onchange();
-            if (citySelect) citySelect.value = savedFilters.city;
+                    cityWrap.style.display = 'flex';
+                } else cityWrap.style.display = 'none';
+            };
         }
-        roomChips.forEach(c => c.classList.toggle('active', c.dataset.rooms === selectedRooms));
-        amenityChips.forEach(c => c.classList.toggle('active', selectedAmenities.includes(c.dataset.id)));      
-        typeItems.forEach((item, index) => {
-            if (item.dataset.type === selectedType) {
-                item.classList.add('active');
-                if (typeSlider) typeSlider.style.transform = `translateX(${index * 100}%)`;
-            } else item.classList.remove('active');
-        });
+        updateNotifBadges();
+        fetchData();
     }
 
-    function saveCurrentFilters() {
-        const filters = {
-            min: priceMinInput ? priceMinInput.value : "",
-            max: priceMaxInput ? priceMaxInput.value : "",
-            type: selectedType,
-            region: regionSelect ? regionSelect.value : "all",
-            city: citySelect ? citySelect.value : "all",
-            rooms: selectedRooms,
-            amenities: selectedAmenities
-        };
-        localStorage.setItem('active_filters', JSON.stringify(filters));
+    async function fetchData() {
+        try {
+            const res = await fetch(`${API_URL}/listings`);
+            if (res.ok) allListings = await res.json();
+            else throw new Error();
+        } catch (e) { allListings = mockListings; }
+        applyFilters();
     }
 
-    if (filterBtn) {
-        filterBtn.onclick = () => {
-            filterSheet.style.display = 'flex'; document.body.classList.add('hide-nav');
-            setTimeout(() => {
-                filterSheet.classList.add('active');
-                filterFooter.classList.add('active');
-                filterOverlay.style.display = 'block';
-            }, 10);
-        };
-    }
-
-    const closeFilters = () => {
-        filterSheet.classList.remove('active');
+    // --- FILTERS ---
+    if (filterBtn) filterBtn.onclick = () => { 
+        filterSheet.classList.add('active'); 
+        filterOverlay.style.display = 'block'; 
+        filterFooter.classList.add('active');
+        document.body.classList.add('hide-nav'); 
+    };
+    
+    if (filterOverlay) filterOverlay.onclick = () => { 
+        filterSheet.classList.remove('active'); 
+        filterOverlay.style.display = 'none'; 
         filterFooter.classList.remove('active');
-        setTimeout(() => { filterSheet.style.display = 'none'; filterOverlay.style.display = 'none'; document.body.classList.remove('hide-nav'); }, 400);
+        document.body.classList.remove('hide-nav'); 
     };
 
-    if (filterOverlay) filterOverlay.onclick = closeFilters;
-    document.getElementById('reset-filters').onclick = () => { localStorage.removeItem('active_filters'); window.location.reload(); };
-    document.getElementById('apply-advanced-filters').onclick = () => { saveCurrentFilters(); applyFilters(); closeFilters(); };
+    document.getElementById('apply-advanced-filters').onclick = () => { applyFilters(); filterOverlay.click(); };
+    document.getElementById('reset-filters').onclick = () => { window.location.reload(); };
 
     roomChips.forEach(chip => {
         chip.onclick = () => {
-            roomChips.forEach(c => i.classList.remove('active'));
+            roomChips.forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
             selectedRooms = chip.dataset.rooms;
         };
@@ -173,9 +135,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     amenityChips.forEach(chip => {
         chip.onclick = () => {
             const id = chip.dataset.id;
-            const index = selectedAmenities.indexOf(id);
-            if (index > -1) selectedAmenities.splice(index, 1);
-            else selectedAmenities.push(id);
+            const idx = selectedAmenities.indexOf(id);
+            if (idx > -1) selectedAmenities.splice(idx, 1); else selectedAmenities.push(id);
             chip.classList.toggle('active');
         };
     });
@@ -192,23 +153,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     categories.forEach(cat => {
         cat.onclick = () => {
-            categories.forEach(c => {
-                if (c) c.classList.remove('active');
-            });
+            categories.forEach(c => c.classList.remove('active'));
             cat.classList.add('active');
             applyFilters();
         };
     });
 
-    if (searchInput) searchInput.oninput = () => applyFilters();
-
     function applyFilters() {
         const activeCat = document.querySelector('.category-item.active');
         const category = activeCat ? activeCat.dataset.category : 'all';
-        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
-        const minP = parseInt(priceMinInput ? priceMinInput.value : 0) || 0;
-        const maxP = parseInt(priceMaxInput ? priceMaxInput.value : Infinity) || Infinity;
-        saveCurrentFilters();
+        const query = (modalSearchInput?.value || '').toLowerCase().trim();
+        const minP = parseInt(priceMinInput?.value || 0) || 0;
+        const maxP = parseInt(priceMaxInput?.value || Infinity) || Infinity;
 
         const filtered = allListings.filter(l => {
             const matchesType = l.type === selectedType;
@@ -217,20 +173,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const matchesPrice = (l.price || 0) >= minP && (l.price || 0) <= maxP;
             let matchesRooms = true;
             if (selectedRooms !== 'any') {
-                if (selectedRooms === '4+') matchesRooms = (l.rooms || 0) >= 4;
-                else matchesRooms = (l.rooms || 0) == selectedRooms;
+                const r = l.rooms || l.details?.rooms || 0;
+                if (selectedRooms === '4+') matchesRooms = r >= 4;
+                else matchesRooms = r == selectedRooms;
             }
-            let matchesLoc = true;
-            if (regionSelect && regionSelect.value !== 'all') {
-                matchesLoc = l.location.includes(regionSelect.value);
-                if (citySelect && citySelect.value !== 'all') matchesLoc = matchesLoc && l.location.includes(citySelect.value);
-            }
-            let matchesAmenities = true;
-            if (selectedAmenities.length > 0) {
-                const itemAmenities = l.amenities ? (typeof l.amenities === 'string' ? (l.amenities.startsWith('[') ? JSON.parse(l.amenities) : l.amenities.split(',')) : l.amenities) : [];
-                matchesAmenities = selectedAmenities.every(a => itemAmenities.includes(a));
-            }
-            return matchesType && matchesCat && matchesSearch && matchesPrice && matchesRooms && matchesLoc && matchesAmenities;
+            return matchesType && matchesCat && matchesSearch && matchesPrice && matchesRooms;
         });
         renderListings(filtered);
     }
@@ -238,26 +185,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderListings(items) {
         if (!container) return;
         if (items.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:60px; color:var(--text-light);"><p>Объявления не найдены</p></div>';
+            container.innerHTML = `<div style="text-align:center; padding:50px; color:#9BA5B7;"><h3>Объявлений пока нет</h3></div>`;
             return;
         }
         container.innerHTML = items.map(item => {
             const isFav = favorites.includes(String(item.id));
+            const details = typeof item.details === 'string' ? JSON.parse(item.details) : (item.details || {});
+            const categoryLabel = { 'cottages': 'Коттедж', 'villas': 'Вилла', 'dachas': 'Дача' }[item.category] || 'Объект';
+            
             return `
             <div class="property-card" onclick="window.location.href='details.html?id=${item.id}'">
                 <div class="card-image-wrap">
-                    <img src="${item.image}" class="card-img" onerror="this.src='https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80'">
-                    <button class="fav-btn" onclick="toggleFavorite(event, '${item.id}')"><i class="${isFav ? 'fas' : 'far'} fa-heart"></i></button>
+                    <img src="${item.image}" class="card-img">
+                    <div style="position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); color: white; padding: 5px 12px; border-radius: 10px; font-size: 10px; font-weight: 800;">${categoryLabel}</div>
+                    <button class="fav-btn" onclick="toggleFavorite(event, '${item.id}')">
+                        <i class="${isFav ? 'fas' : 'far'} fa-heart" style="${isFav ? 'color: #EA5455;' : ''}"></i>
+                    </button>
+                    ${item.is_bargaining_enabled ? `<div style="position:absolute; bottom:15px; left:15px; background:white; color:#2599C8; padding:6px 12px; border-radius:10px; font-size:10px; font-weight:900; box-shadow:0 4px 10px rgba(0,0,0,0.1);"><i class="fas fa-comments-dollar"></i> ТОРГ ДОСТУПЕН</div>` : ''}
                 </div>
                 <div class="card-info">
                     <h3 class="card-title">${item.title}</h3>
-                    <div class="card-loc"><i class="fas fa-map-marker-alt" style="color:var(--brand-blue)"></i> ${item.location}</div>
+                    <div style="color:#9BA5B7; font-size:12px; margin-bottom:15px;"><i class="fas fa-map-marker-alt"></i> ${item.location}</div>
                     <div class="card-features">
-                        <div class="feat-item"><i class="fas fa-bed" style="color:var(--brand-blue)"></i> ${item.rooms || 0}</div>
-                        <div class="feat-item"><i class="fas fa-users" style="color:var(--brand-blue)"></i> ${item.capacity || 0}</div>
+                        <div class="feat-item"><i class="fas fa-bed" style="color:var(--brand-blue)"></i> ${details.rooms || 0}</div>
+                        <div class="feat-item"><i class="fas fa-users" style="color:var(--brand-blue)"></i> ${details.capacity || 0}</div>
                     </div>
                     <div class="card-bottom">
-                        <div class="card-price">${(item.price || 0).toLocaleString()} <span>сум/${item.type === 'rent' ? 'сут.' : 'объект'}</span></div>
+                        <div class="card-price">${(item.price || 0).toLocaleString()} <span>сум / сутки</span></div>
                         <div style="background:var(--soft-gray); color:var(--brand-blue); padding:10px 16px; border-radius:12px; font-size:12px; font-weight:800;">Подробнее</div>
                     </div>
                 </div>
@@ -265,156 +219,94 @@ document.addEventListener('DOMContentLoaded', async () => {
         }).join('');
     }
 
-    window.toggleFavorite = (event, id) => {
-        event.stopPropagation();
+    window.toggleFavorite = (e, id) => {
+        e.stopPropagation();
         const strId = String(id);
-        const index = favorites.indexOf(strId);
-        if (index > -1) favorites.splice(index, 1);
-        else favorites.push(strId);
+        const idx = favorites.indexOf(strId);
+        if (idx > -1) favorites.splice(idx, 1); else favorites.push(strId);
         localStorage.setItem('favorites', JSON.stringify(favorites));
-        document.querySelectorAll(`.fav-btn[onclick*="'${id}'"] i`).forEach(icon => {
-            icon.classList.toggle('fas', favorites.includes(strId));
-            icon.classList.toggle('far', !favorites.includes(strId));
-        });
+        applyFilters();
     };
 
-    async function init() {
-        updateGreeting();
-        applySavedToUI();
-        try {
-            const headers = { 'Content-Type': 'application/json' };
-            const token = getToken();
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-
-            const res = await fetch(`${API_URL}/listings`, { headers });
-            if (res.ok) { 
-                allListings = await res.json(); 
-                applyFilters(); 
-            } else {
-                container.innerHTML = '<div style="text-align:center; padding:60px; color:var(--danger-red);"><p>Ошибка сервера: ' + res.status + '</p></div>';
-            }
-        } catch (e) { 
-            console.error("Fetch Error:", e); 
-            container.innerHTML = '<div style="text-align:center; padding:60px; color:var(--danger-red);"><p>Не удалось подключиться к серверу</p></div>';
-        }
+    // --- NOTIFICATIONS ---
+    function updateNotifBadges() {
+        const unreadCount = notifications.filter(n => !n.read).length;
+        if (unreadBadge) unreadBadge.innerText = unreadCount;
+        if (headerNotifDot) headerNotifDot.classList.toggle('active', unreadCount > 0);
+        localStorage.setItem('dacha_notifs', JSON.stringify(notifications));
     }
-    init();
 
-    const notifSheet = document.getElementById('notification-bottom-sheet');
-    const notifOverlay = document.getElementById('notif-sheet-overlay');
-    const sheetIcon = document.getElementById('sheet-icon');
-    const sheetTitle = document.getElementById('sheet-title');
-    const sheetTime = document.getElementById('sheet-time');
-    const sheetBody = document.getElementById('sheet-body');
+    if (notifBtn) notifBtn.onclick = () => { notifModal.classList.add('active'); document.body.classList.add('hide-nav'); renderNotifications(); };
+    if (closeNotif) closeNotif.onclick = () => { notifModal.classList.remove('active'); document.body.classList.remove('hide-nav'); };
 
-    window.openNotificationDetails = (id) => {
-        const notif = mockNotifications.find(n => n.id === id);
-        if (!notif) return;
-        sheetIcon.innerHTML = `<i class="${notif.icon}"></i>`;
-        sheetIcon.className = `notif-icon-wrap ${notif.iconClass}`;
-        sheetTitle.innerText = notif.title;
-        sheetTime.innerText = notif.time;
-        sheetBody.innerText = notif.fullText || notif.desc;
-        notifOverlay.classList.add('active');
-        setTimeout(() => notifSheet.classList.add('active'), 10);
-        const item = document.querySelector(`.notif-item[data-id="${id}"]`);
-        if (item) { item.classList.remove('unread'); const dot = item.querySelector('.unread-dot'); if (dot) dot.remove(); }
-    };
+    notifTabs.forEach(tab => {
+        tab.onclick = () => {
+            notifTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentNotifTab = tab.dataset.notifTab;
+            renderNotifications();
+        };
+    });
 
-    window.closeNotificationSheet = () => {
-        notifSheet.classList.remove('active');
-        setTimeout(() => { notifOverlay.classList.remove('active'); }, 300);
-    };
-    if (notifOverlay) notifOverlay.onclick = closeNotificationSheet;
-
-    const mockNotifications = [
-        { id: 1, title: "Добро пожаловать в DachaGo!", desc: "Начните поиск вашей идеальной дачи прямо сейчас.", fullText: "Мы рады приветствовать вас! DachaGo - это удобный сервис для поиска и аренды лучших загородных домов.", time: "Только что", icon: "fas fa-sparkles", iconClass: "bg-blue", unread: true },
-        { id: 2, title: "Аккаунт подтвержден", desc: "Ваш профиль успешно прошел верификацию.", fullText: "Поздравляем! Ваш аккаунт был успешно проверен модераторами.", time: "1 час назад", icon: "fas fa-check-circle", iconClass: "bg-green", unread: false }
-    ];
-
-    function renderNotificationList() {
+    function renderNotifications() {
+        const filtered = notifications.filter(n => currentNotifTab === 'unread' ? !n.read : n.read);
         if (!notifContentArea) return;
-        notifContentArea.innerHTML = `<div style="padding:24px 20px 12px; border-bottom:1px solid var(--border-color);"><h4 style="margin:0; font-size:12px; font-weight:900; color:var(--text-light); text-transform:uppercase; letter-spacing:1px;">Сегодня</h4></div>` +
-            mockNotifications.map(n => `<div class="notif-item ${n.unread ? 'unread' : ''}" data-id="${n.id}" onclick="openNotificationDetails(${n.id})"><div class="notif-icon-wrap ${n.iconClass}"><i class="${n.icon}"></i></div><div class="notif-content"><div class="notif-item-title"><span>${n.title}</span><span class="notif-time">${n.time}</span></div><p class="notif-desc">${n.desc}</p></div>${n.unread ? '<div class="unread-dot"></div>' : ''}</div>`).join('');
-    }
-
-    // --- SMART SEARCH ---
-    const searchModal = document.getElementById('search-modal');
-    const modalSearchInput = document.getElementById('modal-search-input');
-    const executeSearchBtn = document.getElementById('execute-search');
-    const historySection = document.getElementById('search-history-section');
-    const historyList = document.getElementById('history-list');
-    const clearHistoryBtn = document.getElementById('clear-history');
-    const closeSearchModalBtn = document.getElementById('close-search-modal');
-    const mainSearchBar = document.querySelector('.search-bar');
-    const mainSearchInput = document.getElementById('search-input');
-    const resultsSection = document.getElementById('search-results-section');
-    const modalListingsContainer = document.getElementById('modal-listings-container');
-
-    let searchHistory = JSON.parse(localStorage.getItem('search_history') || '[]');
-
-    function openSearchModal() {
-        if (!searchModal) return;
-        searchModal.style.display = 'flex'; document.body.classList.add('search-active');
-        if (!modalSearchInput.value.trim()) showFrame('history');
-        else showFrame('results');
-        setTimeout(() => { searchModal.classList.add('active'); if (modalSearchInput) modalSearchInput.focus(); }, 10);
-        renderHistory();
-    }
-
-    function showFrame(frameName) {
-        if (!historySection || !resultsSection) return;
-        if (frameName === 'history') {
-            resultsSection.style.display = 'none';
-            if (searchHistory.length > 0) { historySection.style.display = 'block'; }
-            else historySection.style.display = 'none';
-        } else {
-            historySection.style.display = 'none';
-            resultsSection.style.display = 'block';
+        if (filtered.length === 0) {
+            notifContentArea.innerHTML = `<div style="text-align:center; padding:50px; color:#9BA5B7;">История пуста</div>`;
+            return;
         }
+        notifContentArea.innerHTML = filtered.map(n => `
+            <div class="notif-card ${!n.read ? 'unread' : ''}" onclick="openNotifDetail(${n.id})">
+                <div class="notif-icon-box ${n.type === 'success' ? 'bg-green' : 'bg-blue'}"><i class="fas ${n.type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i></div>
+                <div class="notif-info">
+                    <div class="notif-head"><span class="notif-label">${n.title}</span><span class="notif-time">${n.time}</span></div>
+                    <p class="notif-text">${n.message}</p>
+                </div>
+            </div>
+        `).join('');
     }
+
+    window.openNotifDetail = (id) => {
+        const n = notifications.find(x => x.id === id);
+        if (!n) return;
+        n.read = true; updateNotifBadges(); renderNotifications();
+        document.getElementById('detail-title').innerText = n.title;
+        document.getElementById('detail-body').innerText = n.message;
+        const iconBox = document.getElementById('detail-icon-box');
+        iconBox.className = `notif-icon-box ${n.type === 'success' ? 'bg-green' : 'bg-blue'}`;
+        iconBox.innerHTML = `<i class="fas ${n.type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i>`;
+        document.getElementById('detail-footer').innerHTML = n.action ? `<button class="apply-btn" onclick="window.location.href='${n.action}'">Перейти к действию</button>` : '';
+        document.getElementById('notif-detail-overlay').style.display = 'block';
+        document.getElementById('notif-detail-sheet').classList.add('active');
+    };
+
+    window.closeNotifDetail = () => {
+        document.getElementById('notif-detail-overlay').style.display = 'none';
+        document.getElementById('notif-detail-sheet').classList.remove('active');
+    };
+    document.getElementById('notif-detail-overlay').onclick = window.closeNotifDetail;
+
+    // --- SEARCH ---
+    if (searchTrigger) searchTrigger.onclick = () => { searchModal.style.display = 'flex'; modalSearchInput.focus(); renderHistory(); };
+    if (closeSearchModalBtn) closeSearchModalBtn.onclick = () => { searchModal.style.display = 'none'; };
+    if (executeSearchBtn) executeSearchBtn.onclick = () => {
+        const q = modalSearchInput.value.trim();
+        if (q) {
+            searchHistory = [q, ...searchHistory.filter(h => h !== q)].slice(0, 5);
+            localStorage.setItem('search_history', JSON.stringify(searchHistory));
+            applyFilters();
+            document.getElementById('search-results-section').style.display = 'block';
+            document.getElementById('search-history-section').style.display = 'none';
+        }
+    };
 
     function renderHistory() {
-        if (!historyList) return;
-        if (searchHistory.length === 0) { historySection.style.display = 'none'; return; }
-        historySection.style.display = 'block';
-        historyList.innerHTML = searchHistory.map(item => `<div class="history-chip" onclick="useHistoryItem('${item}')"><i class="fas fa-history"></i><span>${item}</span></div>`).join('');
+        if (searchHistory.length === 0) { document.getElementById('search-history-section').style.display = 'none'; return; }
+        document.getElementById('search-history-section').style.display = 'block';
+        historyList.innerHTML = searchHistory.map(h => `<div class="history-chip" onclick="modalSearchInput.value='${h}'; executeSearchBtn.click();"><i class="fas fa-history"></i><span>${h}</span></div>`).join('');
     }
 
-    function closeSearchModal() {
-        if (!searchModal) return;
-        searchModal.classList.remove('active');
-        setTimeout(() => { searchModal.style.display = 'none'; document.body.classList.remove('search-active'); }, 300);
-    }
+    if (clearHistoryBtn) clearHistoryBtn.onclick = () => { searchHistory = []; localStorage.setItem('search_history', '[]'); renderHistory(); };
 
-    window.useHistoryItem = (query) => {
-        if (modalSearchInput) modalSearchInput.value = query;
-        performSearch(query);
-    };
-
-    function performSearch(query) {
-        if (!query || !query.trim()) return;
-        const q = query.trim();
-        searchHistory = searchHistory.filter(h => h !== q);
-        searchHistory.unshift(q);
-        if (searchHistory.length > 10) searchHistory.pop();
-        localStorage.setItem('search_history', JSON.stringify(searchHistory));
-        if (mainSearchInput) mainSearchInput.value = q;
-        applyFilters();
-        showModalResults(q);
-    }
-
-    function showModalResults(query) {
-        if (!modalListingsContainer) return;
-        showFrame('results');
-        const q = query.toLowerCase();
-        const filtered = allListings.filter(l => l.title.toLowerCase().includes(q) || l.location.toLowerCase().includes(q));
-        modalListingsContainer.innerHTML = filtered.length === 0 ? '<div style="text-align:center; padding:40px; color:var(--text-light);"><p>Ничего не найдено</p></div>' :
-            filtered.map(item => `<div class="property-card" onclick="window.location.href='details.html?id=${item.id}'"><div class="card-image-wrap"><img src="${item.image}" class="card-img"><button class="fav-btn" onclick="toggleFavorite(event, '${item.id}')"><i class="${favorites.includes(String(item.id)) ? 'fas' : 'far'} fa-heart"></i></button></div><div class="card-info"><h3 class="card-title">${item.title}</h3><div class="card-loc">${item.location}</div><div class="card-price">${(item.price || 0).toLocaleString()} <span>сум</span></div></div></div>`).join('');
-    }
-
-    if (mainSearchBar) mainSearchBar.addEventListener('click', (e) => { if (e.target.id !== 'search-input') openSearchModal(); });
-    if (executeSearchBtn) executeSearchBtn.onclick = () => performSearch(modalSearchInput.value);
-    if (closeSearchModalBtn) closeSearchModalBtn.onclick = closeSearchModal;
-
+    init();
 });

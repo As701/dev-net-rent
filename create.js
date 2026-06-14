@@ -12,6 +12,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let rules = [];
     let selectedCoords = null;
     let calendarMode = 'price';
+    let isBargainingEnabled = false;
+
+    // --- BARGAINING TOGGLE ---
+    const bargainingBtn = document.getElementById('bargaining-toggle-btn');
+    const bargainingHint = document.getElementById('bargaining-hint');
+    if (bargainingBtn) {
+        bargainingBtn.onclick = () => {
+            isBargainingEnabled = !isBargainingEnabled;
+            bargainingBtn.classList.toggle('active', isBargainingEnabled);
+            if (bargainingHint) bargainingHint.style.display = isBargainingEnabled ? 'block' : 'none';
+        };
+    }
 
     const locationData = {
         "Ташкентская область": ["Ташкент", "Чарвак", "Чимган", "Бельдерсай", "Бричмулла", "Ходжикент", "Паркент", "Кибрай"],
@@ -79,6 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapBtn = document.getElementById('map-picker-btn');
     if (mapBtn) {
         mapBtn.onclick = () => {
+            if (typeof ymaps === 'undefined') {
+                alert("Ошибка: Библиотека карт не загружена. Проверьте подключение к интернету или API ключ.");
+                return;
+            }
             mapModal.classList.add('active');
             if (!yMap) {
                 ymaps.ready(() => {
@@ -251,6 +267,69 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- DESCRIPTION COUNTER & VALIDATION ---
+    let isLivenessPassed = false;
+    const gestures = [
+        { icon: '🖖🏻', label: 'Покажите жест: 🖖🏻 (Vulkan)' },
+        { icon: '🤘🏻', label: 'Покажите жест: 🤘🏻 (Rock-n-Roll)' },
+        { icon: '✌🏻', label: 'Покажите жест: ✌🏻 (Peace)' },
+        { icon: '👌🏻', label: 'Покажите жест: 👌🏻 (OK)' }
+    ];
+    let currentGesture = null;
+    let livenessStream = null;
+    let capturedLivenessData = null;
+
+    // --- LIVENESS LOGIC ---
+    const startLivenessBtn = document.getElementById('start-liveness-btn');
+    const captureLivenessBtn = document.getElementById('capture-liveness-btn');
+    const livenessVideo = document.getElementById('liveness-video');
+    const livenessCanvas = document.getElementById('liveness-canvas');
+    const cameraWrap = document.getElementById('camera-preview-wrap');
+    const livenessPlaceholder = document.getElementById('liveness-placeholder');
+    const livenessInstructions = document.getElementById('liveness-instructions');
+    const gestureLabel = document.getElementById('gesture-instruction');
+    const livenessSuccess = document.getElementById('liveness-success');
+
+    if (startLivenessBtn) {
+        startLivenessBtn.onclick = async () => {
+            try {
+                livenessStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                livenessVideo.srcObject = livenessStream;
+                cameraWrap.style.display = 'block';
+                livenessPlaceholder.style.display = 'none';
+                startLivenessBtn.style.display = 'none';
+                livenessInstructions.style.display = 'block';
+                
+                // Randomize gesture
+                currentGesture = gestures[Math.floor(Math.random() * gestures.length)];
+                gestureLabel.innerText = currentGesture.label;
+            } catch (err) {
+                alert("Ошибка доступа к камере: " + err.message);
+            }
+        };
+    }
+
+    if (captureLivenessBtn) {
+        captureLivenessBtn.onclick = () => {
+            const context = livenessCanvas.getContext('2d');
+            livenessCanvas.width = livenessVideo.videoWidth;
+            livenessCanvas.height = livenessVideo.videoHeight;
+            context.drawImage(livenessVideo, 0, 0, livenessCanvas.width, livenessCanvas.height);
+            
+            capturedLivenessData = livenessCanvas.toDataURL('image/jpeg', 0.8);
+            
+            // Stop stream
+            if (livenessStream) {
+                livenessStream.getTracks().forEach(track => track.stop());
+            }
+            
+            cameraWrap.style.display = 'none';
+            livenessInstructions.style.display = 'none';
+            livenessSuccess.style.display = 'block';
+            isLivenessPassed = true;
+            checkOverallValidation();
+        };
+    }
+
     function validateDescription() {
         if (!descInput) return;
 
@@ -281,18 +360,50 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = document.getElementById('title-input')?.value;
         const region = document.getElementById('region-select')?.value;        
         const desc = descInput?.value || "";
+        const pSeries = document.getElementById('passport-series')?.value;
+        const pNumber = document.getElementById('passport-number')?.value;
 
-        const isValid = title && region && desc.length >= MIN_CHARS;
+        const isValid = title && region && desc.length >= MIN_CHARS && pSeries?.length === 2 && pNumber?.length === 7 && isLivenessPassed;
         if (publishBtn) publishBtn.disabled = !isValid;
     }
+
+    document.getElementById('passport-series')?.addEventListener('input', checkOverallValidation);
+    document.getElementById('passport-number')?.addEventListener('input', checkOverallValidation);
 
     if (descInput) {
         descInput.addEventListener('input', validateDescription);
     }
 
-    // --- PUBLISH ---
+    // --- PAYMENT TIMER UPDATED ---
+    let paymentInterval = null;
+    function startPaymentTimer(seconds) {
+        const timerWrap = document.getElementById('payment-timer-wrap');
+        const timerDisplay = document.getElementById('payment-timer');
+        if (!timerWrap || !timerDisplay) return;
+
+        if (paymentInterval) clearInterval(paymentInterval);
+        timerWrap.style.display = 'block';
+        let timeLeft = seconds;
+
+        paymentInterval = setInterval(() => {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            if (timeLeft <= 0) {
+                clearInterval(paymentInterval);
+                alert("Время на оплату истекло. Объявление аннулировано.");
+                window.location.href = 'index.html';
+            }
+            timeLeft--;
+        }, 1000);
+    }
+
     if (publishBtn) {
         publishBtn.onclick = async () => {
+            const token = localStorage.getItem('token');
+            const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
+
             const finalData = {
                 owner_id: user.id,
                 title: document.getElementById('title-input').value,
@@ -301,6 +412,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 price: document.getElementById('listing-price-input').value.replace(/\s/g,''),
                 location: `${regionSelect.value}, ${citySelect.value}`,
                 coords: selectedCoords,
+                is_bargaining_enabled: isBargainingEnabled,
+                passport: {
+                    series: document.getElementById('passport-series').value.toUpperCase(),
+                    number: document.getElementById('passport-number').value
+                },
+                liveness_img: capturedLivenessData,
                 details: {
                     beds: document.getElementById('bedrooms-input').value,
                     baths: document.getElementById('bathrooms-input').value,       
@@ -317,9 +434,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 policy: document.querySelector('.policy-option.active')?.dataset.policy,
                 photos: uploadedPhotos
             };
-            console.log("Publishing PRO:", finalData);
-            alert("Объявление отправлено на модерацию!");
-            window.location.href = 'index.html';
+            
+            publishBtn.disabled = true;
+            publishBtn.innerText = "Отправка...";
+            
+            try {
+                const res = await fetch(`${API_URL}/listings/create`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(finalData)
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                    alert("Объявление создано! Оплатите размещение в течение 10 минут.");
+                    publishBtn.innerText = "Ожидание оплаты...";
+                    
+                    const expiresAt = new Date(result.expires_at).getTime();
+                    const now = new Date().getTime();
+                    const diff = Math.floor((expiresAt - now) / 1000);
+                    
+                    startPaymentTimer(diff > 0 ? diff : 600);
+                } else {
+                    alert("Ошибка: " + (result.detail || "Не удалось создать объявление"));
+                    publishBtn.disabled = false;
+                    publishBtn.innerText = "Опубликовать";
+                }
+            } catch (err) {
+                alert("Ошибка сети: " + err.message);
+                publishBtn.disabled = false;
+                publishBtn.innerText = "Опубликовать";
+            }
         };
     }
 

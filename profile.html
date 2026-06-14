@@ -222,20 +222,32 @@
             
             <div class="user-id-badge">ID: <span id="display-id">...</span></div>
             <h2 class="user-name" id="display-name">Загрузка...</h2>
-            <span class="user-phone" id="display-phone">...</span>
             
-            <div class="rating-badge" id="rating-container" style="display: none;">
-                <i class="fas fa-star"></i>
-                <span id="display-rating">0.0</span>
-                <span style="color: #9BA5B7; font-weight: 600;">(0 отзывов)</span>
+            <!-- KYC & STRIKES -->
+            <div id="kyc-badge-container" style="margin: 10px 0;">
+                <!-- Clickable Badge: Unverified -->
+                <a href="verify.html" id="kyc-unverified" class="status-row" style="display: none; background: #FFF0F0; padding: 8px 15px; border-radius: 12px; text-decoration: none; border: 1.5px solid #FFDCDC;">
+                    <div class="status-dot" style="background: var(--danger);"></div>
+                    <span class="status-label" style="color: var(--danger); font-weight: 800;">⚠️ Аккаунт не верифицирован</span>
+                </a>
+                <!-- Badge: Verified -->
+                <div id="kyc-verified" class="status-row" style="display: none; background: #E8F5E9; padding: 8px 15px; border-radius: 12px; border: 1.5px solid #C8E6C9;">
+                    <i class="fas fa-shield-alt" style="color: var(--success); font-size: 14px;"></i>
+                    <span class="status-label" style="color: var(--success); font-weight: 800;">🛡️ Профиль подтвержден</span>
+                </div>
             </div>
 
-            <div class="status-row">
-                <div id="status-dot" class="status-dot"></div>
-                <span id="status-label" class="status-label">Проверка...</span>
+            <div id="strikes-container" style="font-size: 11px; font-weight: 800; color: var(--text-light); text-transform: uppercase; margin-bottom: 15px;">
+                Предупреждения: <span id="strikes-count" style="color: var(--text-dark);">0 / 3</span>
+                <p id="strikes-hint" style="font-size: 8px; margin: 4px 0 0; display: none; color: var(--danger);">При 3 нарушениях аккаунт блокируется на год!</p>
             </div>
 
-            <a href="edit-profile.html" class="btn-edit">Редактировать профиль</a>
+            <span class="user-phone" id="display-phone">...</span>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+                <a href="edit-profile.html" class="btn-edit" style="width: 200px;">Редактировать профиль</a>
+                <div id="admin-panel-container"></div>
+            </div>
         </header>
 
         <!-- STATISTICS -->

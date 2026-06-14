@@ -10,15 +10,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         phone: document.getElementById('display-phone'),
         avatar: document.getElementById('user-avatar'),
         logout: document.getElementById('logout-trigger'),
-        statusDot: document.getElementById('status-dot'),
-        statusLabel: document.getElementById('status-label')
+        kycUnverified: document.getElementById('kyc-unverified'),
+        kycVerified: document.getElementById('kyc-verified'),
+        strikesCount: document.getElementById('strikes-count'),
+        strikesHint: document.getElementById('strikes-hint')
     };
 
-    // --- ПРОВЕРКА АВТОРИЗАЦИИ ---
+    // --- CHECK AUTHORIZATION ---
     if (!token) {
         renderGuestState();
     } else {
-        // --- OPTIMISTIC UI: Сразу показываем данные из кэша ---
+        // --- OPTIMISTIC UI: Show cached data first ---
         const cachedUser = localStorage.getItem('user');
         if (cachedUser) {
             try {
@@ -27,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('Error parsing cached user', e);
             }
         }
-        // Фоновое обновление
+        // Background update
         fetchProfile();
     }
 
@@ -80,6 +82,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (elements.name) elements.name.innerText = user.name || 'Пользователь';
         if (elements.phone) elements.phone.innerText = user.phone || user.email || 'Телефон не указан';
 
+        // KYC Badges
+        if (elements.kycUnverified && elements.kycVerified) {
+            if (user.is_verified) {
+                elements.kycVerified.style.display = 'flex';
+                elements.kycUnverified.style.display = 'none';
+            } else {
+                elements.kycVerified.style.display = 'none';
+                elements.kycUnverified.style.display = 'flex';
+            }
+        }
+
+        // Strikes
+        if (elements.strikesCount) {
+            const strikes = user.strikes || 0;
+            elements.strikesCount.innerText = `${strikes} / 3`;
+            if (strikes > 0) {
+                elements.strikesCount.style.color = 'var(--danger)';
+                if (elements.strikesHint) elements.strikesHint.style.display = 'block';
+            }
+        }
+
         if (elements.avatar) {
             let avatarUrl = user.avatar_url;
             if (!avatarUrl) {
@@ -92,10 +115,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (elements.id) elements.id.innerText = user.user_id_code || user.id || 'N/A';
 
-        if (elements.statusLabel && elements.statusDot) {
-            const userRole = user.role === 'admin' ? 'Администратор' : 'Пользователь';
-            elements.statusLabel.innerText = `Роль: ${userRole}`;
-            elements.statusDot.classList.add('verified');
+        // Admin Panel Access
+        const adminContainer = document.getElementById('admin-panel-container');
+        if (adminContainer) {
+            if (user.role === 'admin' || user.role === 'staff' || user.role === 'moderator') {
+                adminContainer.innerHTML = `
+                    <a href="admin/index.html" class="btn-edit" style="background: #1A1D1E; width: 200px; margin-top: 5px;">
+                        <i class="fas fa-cog" style="margin-right: 8px;"></i> Панель модерации
+                    </a>`;
+            } else {
+                adminContainer.innerHTML = '';
+            }
         }
 
         if (elements.logout) {

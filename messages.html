@@ -55,8 +55,26 @@
 </head>
 <body>
     <header class="header">
-        <h1 class="header-title">Чаты</h1>
+        <h1 class="header-title" style="margin-bottom: 20px;">Чаты</h1>
+        
+        <div class="tabs-container" style="display: flex; background: #E2E8F0; padding: 4px; border-radius: 16px; gap: 4px;">
+            <div class="tab-item active" data-tab="owners" style="flex: 1; text-align: center; padding: 10px; font-size: 12px; font-weight: 800; color: var(--text-light); cursor: pointer; border-radius: 12px; transition: 0.3s;">
+                Владельцы
+            </div>
+            <div class="tab-item" data-tab="system" style="flex: 1; text-align: center; padding: 10px; font-size: 12px; font-weight: 800; color: var(--text-light); cursor: pointer; border-radius: 12px; transition: 0.3s;">
+                Система
+            </div>
+        </div>
     </header>
+
+    <style>
+        .tab-item.active { background: var(--white); color: var(--brand-blue); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .system-notif { display: flex; gap: 15px; padding: 20px; border-bottom: 1px solid #F8F9FA; transition: 0.3s; }
+        .system-icon { width: 45px; height: 45px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+        .bg-success { background: #E8F5E9; color: #2E7D32; }
+        .bg-info { background: #E3F2FD; color: #2599C8; }
+        .bg-danger { background: #FFEBEE; color: #D32F2F; }
+    </style>
 
     <main class="chat-container">
         <div id="chat-list" class="chat-list">

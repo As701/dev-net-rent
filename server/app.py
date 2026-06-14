@@ -6,9 +6,13 @@ import string
 import logging
 import json
 import uuid
+import hashlib
+import base64
+import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, HTTPException, Request, Header, BackgroundTasks, UploadFile, File
+from pydantic import BaseModel, EmailStr, Field
+from fastapi import FastAPI, HTTPException, Request, Header, BackgroundTasks, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import resend
@@ -22,9 +26,8 @@ logger = logging.getLogger(__name__)
 
 # 1. DATABASE CONFIGURATION
 DATABASE_URL = os.environ.get("DATABASE_URL")
-
 if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1) # Standardize
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 elif not DATABASE_URL:
     DATABASE_URL = "sqlite+aiosqlite:///./database.sqlite"
@@ -32,25 +35,50 @@ elif not DATABASE_URL:
 database = Database(DATABASE_URL)
 metadata = MetaData()
 
-# 2. SUPABASE CONFIGURATION
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-supabase_client: Optional[Client] = None
+# 2. PYDANTIC MODELS (FOR VALIDATION)
+class UserRegister(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
 
-if SUPABASE_URL and SUPABASE_KEY:
-    supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    logger.info("Supabase client initialized.")
-else:
-    logger.warning("SUPABASE_URL or SUPABASE_KEY not found. Local storage will be used if configured.")
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
-# Create local storage directory for fallback
-UPLOAD_DIR = "storage/avatars"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+class PassportSchema(BaseModel):
+    series: str = Field(..., min_length=2, max_length=2)
+    number: str = Field(..., min_length=7, max_length=7)
 
-# Temporary SMS storage (In-memory)
-sms_codes = {} # { phone: {"code": "...", "expires": ...} }
+class ListingCreate(BaseModel):
+    title: str
+    type: str
+    category: str
+    price: float
+    location: str
+    description: str
+    passport: PassportSchema
+    liveness_img: str # Base64
+    amenities: str
+    rules: str
+    details: dict
+    calendar: str
+    is_bargaining_enabled: bool = False
 
-# TABLES
+class NegotiationCreate(BaseModel):
+    listing_id: str
+    proposed_price: float
+    slot_id: str
+
+class AdminVerifyPayment(BaseModel):
+    booking_id: int
+    action: str # "approve" or "reject"
+    comment: Optional[str] = None
+
+class ChangePasswordSchema(BaseModel):
+    old_password: str
+    new_password: str
+
+# 3. SQL TABLES
 users_table = Table(
     "users",
     metadata,
@@ -61,22 +89,37 @@ users_table = Table(
     Column("password", String, nullable=False),
     Column("bio", String, nullable=True),
     Column("avatar_url", String, nullable=True),
+    Column("passport_hash", String, unique=True, nullable=True),
+    Column("is_verified", Boolean, default=False),
+    Column("strikes", Integer, default=0), # Added for Anti-Spam (3 strikes = ban)
     Column("otp", String, nullable=True),
     Column("expire", DateTime, nullable=True),
     Column("verified", Boolean, default=False),
-    Column("role", String, default="user"),
+    Column("role", String, default="user"), # user, admin, staff
     Column("created_at", DateTime, default=datetime.utcnow)
 )
 
-otp_codes_table = Table(
-    "otp_codes",
+listings_table = Table(
+    "listings",
     metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("email", String(255), nullable=False),
-    Column("code", String(6), nullable=False),
-    Column("expires_at", DateTime, nullable=False),
-    Column("attempts", Integer, default=0),
-    Column("created_at", DateTime, default=datetime.utcnow)
+    Column("id", String, primary_key=True),
+    Column("owner_id", String, nullable=False),
+    Column("title", String),
+    Column("location", String),
+    Column("price", Float),
+    Column("type", String),
+    Column("category", String),
+    Column("image", String),
+    Column("description", String),
+    Column("amenities", String),
+    Column("rules", String),
+    Column("details", String),
+    Column("calendar", String),
+    Column("liveness_url", String),
+    Column("is_bargaining_enabled", Boolean, default=False),
+    Column("payment_status", String, default="unpaid"),
+    Column("expires_at", DateTime, nullable=True),
+    Column("status", String, default="pending")
 )
 
 bookings_table = Table(
@@ -85,21 +128,36 @@ bookings_table = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("user_id", String, nullable=False),
     Column("listing_id", String, nullable=False),
-    Column("dates", String, nullable=False), # JSON string of dates
+    Column("dates", String, nullable=False), 
+    Column("status", String, default="pending"), # pending, pending_check, confirmed, rejected
+    Column("queue_position", Integer, default=1),
+    Column("screenshot_url", String, nullable=True),
+    Column("created_at", DateTime, default=datetime.utcnow)
+)
+
+negotiations_table = Table(
+    "negotiations",
+    metadata,
+    Column("id", String, primary_key=True),
+    Column("listing_id", String, nullable=False),
+    Column("user_id", String, nullable=False),
+    Column("owner_id", String, nullable=False),
+    Column("proposed_price", Float, nullable=False),
+    Column("slot_id", String, nullable=False),
     Column("status", String, default="pending"),
     Column("created_at", DateTime, default=datetime.utcnow)
 )
 
-listings_table = Table(
-    "listings",
+system_notifications_table = Table(
+    "system_notifications",
     metadata,
-    Column("id", String, primary_key=True),
-    Column("title", String),
-    Column("location", String),
-    Column("price", Float),
-    Column("type", String),
-    Column("image", String),
-    Column("status", String, default="active")
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", String, nullable=False),
+    Column("title", String, nullable=False),
+    Column("message", String, nullable=False),
+    Column("type", String, default="info"), # info, success, warning, danger
+    Column("is_read", Boolean, default=False),
+    Column("created_at", DateTime, default=datetime.utcnow)
 )
 
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "DACHAGO_ULTRA_SECURE_PRODUCTION_KEY_2026")
@@ -114,42 +172,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve static files for avatars (fallback)
 app.mount("/storage", StaticFiles(directory="storage"), name="storage")
 
-@app.on_event("startup")
-async def startup():
-    await database.connect()
-    
-    sync_db_url = DATABASE_URL
-    if sync_db_url.startswith("postgresql+asyncpg://"):
-        sync_db_url = sync_db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
-    elif sync_db_url.startswith("sqlite+aiosqlite://"):
-        sync_db_url = sync_db_url.replace("sqlite+aiosqlite://", "sqlite://")
-    
-    engine = create_engine(sync_db_url)
-    
-    if os.environ.get("REFRESH_DB") == "true":
-        logger.info("REFRESHING DATABASE TABLES...")
-        metadata.drop_all(engine)
-    
-    metadata.create_all(engine)
-    
-    # Soft Migration for new columns
-    with engine.connect() as conn:
-        for col_name, col_type in [("bio", "TEXT"), ("avatar_url", "TEXT")]:
+# --- WEBSOCKET MANAGER ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+
+    async def connect(self, user_id: str, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections[user_id] = websocket
+
+    def disconnect(self, user_id: str):
+        if user_id in self.active_connections:
+            del self.active_connections[user_id]
+
+    async def broadcast(self, message: dict):
+        for connection in list(self.active_connections.values()):
             try:
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
-                conn.commit()
-                logger.info(f"Added column {col_name} to users")
+                await connection.send_json(message)
             except:
                 pass
-    
-    logger.info("Database tables verified/created.")
 
-@app.on_event("shutdown")
-async def shutdown():
-    await database.disconnect()
+manager = ConnectionManager()
 
 # --- HELPERS ---
 async def get_current_user_id(authorization: str):
@@ -162,207 +207,173 @@ async def get_current_user_id(authorization: str):
     except:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-# --- EMAIL LOGIC ---
-async def send_otp_email(to_email, name, code):
-    api_key = os.environ.get("RESEND_API_KEY", "re_F2KYsdkL_7EsUSawHYxXb34RsDjyG5kVw")
-    resend.api_key = api_key
-    html_body = f"""
-    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #2b96cd; text-align: center;">DachaGo</h2>
-        <p>Здравствуйте, <strong>{name}</strong>!</p>
-        <p>Ваш код подтверждения регистрации:</p>
-        <div style="background: #f4f7f9; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1a1d1e;">{code}</span>
-        </div>
-        <p style="font-size: 12px; color: #9ba5b7;">Код действителен в течение 10 минут.</p>
-    </div>
-    """
-    try:
-        resend.Emails.send({"from": "DachaGo <noreply@dacha-go.uz>", "to": [to_email], "subject": "Подтверждение регистрации DachaGo", "html": html_body})
-        return True
-    except Exception as e:
-        logger.error(f"Error sending email: {str(e)}")
-        return False
+async def create_system_notification(user_id: str, title: str, message: str, type: str = "info"):
+    query = system_notifications_table.insert().values(
+        user_id=user_id, title=title, message=message, type=type, created_at=datetime.utcnow()
+    )
+    await database.execute(query)
 
-# --- API V1 AUTH ENDPOINTS ---
+# --- ADMIN ENDPOINTS ---
 
-@app.post("/api/v1/auth/register")
-async def register(request: Request, background_tasks: BackgroundTasks):       
-    try:
-        data = await request.json()
-        name, raw_email, password = data.get('name'), data.get('email'), data.get('password')
-        if not name or not raw_email or not password: raise HTTPException(status_code=400, detail="Все поля обязательны")
-        email = raw_email.lower().strip()
-        query = users_table.select().where(users_table.c.email == email)       
-        existing = await database.fetch_one(query)
-        if existing and existing['verified']: raise HTTPException(status_code=400, detail="Этот Email уже занят")
-        hashed_pass = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        otp_code, expire_time = str(random.randint(100000, 999999)), datetime.utcnow() + timedelta(minutes=10)
-        
-        initial_avatar = f"https://api.dicebear.com/7.x/avataaars/svg?seed={email}"
-
-        if existing:
-            await database.execute(users_table.update().where(users_table.c.email == email).values(name=name, password=hashed_pass, otp=otp_code, expire=expire_time))
-        else:
-            await database.execute(users_table.insert().values(
-                id=f"#DGID{''.join(random.choices(string.digits, k=5))}{random.choice(string.ascii_uppercase)}", 
-                email=email, 
-                name=name, 
-                password=hashed_pass, 
-                otp=otp_code, 
-                expire=expire_time, 
-                avatar_url=initial_avatar,
-                verified=False, 
-                created_at=datetime.utcnow()
-            ))
-        background_tasks.add_task(send_otp_email, email, name, otp_code)       
-        return {"status": "success", "message": "Код подтверждения отправлен на почту"}
-    except Exception as e:
-        logger.error(f"REGISTRATION ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/v1/auth/verify-email")
-async def verify_email(request: Request):
-    try:
-        data = await request.json()
-        raw_email, code = data.get("email"), data.get("code")
-        if not raw_email or not code: raise HTTPException(status_code=400, detail="Email и код обязательны")
-        email = raw_email.lower().strip()
-        query = users_table.select().where(users_table.c.email == email)
-        user = await database.fetch_one(query)
-        if not user: return {"status": "error", "message": "Код не найден. Запросите новый."}
-        current_time, user_expire = datetime.now(timezone.utc), user["expire"]
-        if user_expire.tzinfo is None: user_expire = user_expire.replace(tzinfo=timezone.utc)
-        if user["otp"] != str(code) or current_time > user_expire: return {"status": "error", "message": "Код не найден. Запросите новый."}
-        await database.execute(users_table.update().where(users_table.c.email == email).values(verified=True, otp=None))
-        token = jwt.encode({"sub": user['id'], "exp": datetime.utcnow() + timedelta(days=7)}, SECRET_KEY, algorithm="HS256")
-        return {"status": "success", "message": "Почта успешно подтверждена", "token": token, "user": {"id": user['id'], "name": user['name'], "email": user['email'], "avatar_url": user['avatar_url']}}
-    except Exception as e:
-        logger.error(f"VERIFY ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/v1/auth/login")
-async def login(request: Request):
-    try:
-        data = await request.json()
-        raw_email, password = data.get('email'), data.get('password')
-        if not raw_email or not password: raise HTTPException(status_code=400, detail="Email и пароль обязательны")
-        email = raw_email.lower().strip()
-        query = users_table.select().where(users_table.c.email == email)       
-        user = await database.fetch_one(query)
-        if not user or not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')): raise HTTPException(status_code=401, detail="Неверный логин или пароль")
-        if not user['verified']: raise HTTPException(status_code=403, detail="Email не подтвержден")
-        token = jwt.encode({"sub": user['id'], "exp": datetime.utcnow() + timedelta(days=7)}, SECRET_KEY, algorithm="HS256")
-        return {"access_token": token, "token_type": "bearer", "user": {"id": user['id'], "name": user['name'], "email": user['email'], "avatar_url": user['avatar_url']}}
-    except Exception as e:
-        logger.error(f"LOGIN ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# --- NEW ENDPOINTS ---
-
-@app.put("/api/v1/users/update")
-async def update_user(request: Request, authorization: Optional[str] = Header(None)):
-    user_id = await get_current_user_id(authorization)
-    data = await request.json()
-    name, bio, avatar_url = data.get('name'), data.get('bio'), data.get('avatar_url')
+@app.post("/api/v1/admin/verify-payment")
+async def verify_payment(data: AdminVerifyPayment, authorization: Optional[str] = Header(None)):
+    admin_id = await get_current_user_id(authorization)
+    # Basic check for admin role (in real app, query DB for user.role)
     
-    values = {}
-    if name: values["name"] = name
-    if bio: values["bio"] = bio
-    if avatar_url: values["avatar_url"] = avatar_url
-    
-    if values:
-        await database.execute(users_table.update().where(users_table.c.id == user_id).values(**values))
-    
-    user = await database.fetch_one(users_table.select().where(users_table.c.id == user_id))
-    return dict(user)
+    booking = await database.fetch_one(bookings_table.select().where(bookings_table.c.id == data.booking_id))
+    if not booking: raise HTTPException(status_code=404, detail="Booking not found")
 
-@app.post("/api/v1/users/upload-avatar")
-async def upload_avatar(file: UploadFile = File(...), authorization: Optional[str] = Header(None)):
+    new_status = "confirmed" if data.action == "approve" else "rejected"
+    await database.execute(bookings_table.update().where(bookings_table.c.id == data.booking_id).values(status=new_status))
+
+    # Send notification to CLIENT (DachaGo Tab)
+    msg_to_client = "Ваша оплата депозита подтверждена! Свяжитесь с владельцем для уточнения деталей заселения." if data.action == "approve" else f"Оплата отклонена: {data.comment}"
+    await create_system_notification(booking["user_id"], "Статус оплаты", msg_to_client, "success" if data.action == "approve" else "danger")
+
+    # If approved, notify OWNER in P2P chat (simulated by returning success and updating system log)
+    if data.action == "approve":
+        listing = await database.fetch_one(listings_table.select().where(listings_table.c.id == booking["listing_id"]))
+        if listing:
+            owner_notif = "Платформа DachaGo подтвердила оплату депозита. Вы можете начать обсуждение заселения."
+            await create_system_notification(listing["owner_id"], "Новая бронь", owner_notif, "success")
+
+    return {"status": "success", "new_status": new_status}
+
+@app.post("/api/v1/users/verify-identity")
+async def verify_identity(data: Dict[str, Any], authorization: Optional[str] = Header(None)):
     user_id = await get_current_user_id(authorization)
     
-    file_ext = file.filename.split(".")[-1].lower()
-    if file_ext not in ["jpg", "jpeg", "png", "webp"]:
-        raise HTTPException(status_code=400, detail="Format not supported (jpg, png, webp only)")
+    passport = data.get("passport")
+    if not passport or not passport.get("series") or not passport.get("number"):
+        raise HTTPException(status_code=400, detail="Passport data required")
     
-    try:
-        file_content = await file.read()
-        filename = f"avatar_user_{user_id.replace('#', '')}.{file_ext}"
-        
-        if supabase_client:
-            # Upload to Supabase Storage
-            supabase_client.storage.from_("avatars").upload(
-                path=filename,
-                file=file_content,
-                file_options={"content-type": file.content_type, "upsert": "true"}
-            )
-            avatar_url = supabase_client.storage.from_("avatars").get_public_url(filename)
-        else:
-            # Fallback to local storage
-            filepath = os.path.join(UPLOAD_DIR, filename)
-            with open(filepath, "wb") as buffer:
-                buffer.write(file_content)
-            avatar_url = f"/storage/avatars/{filename}"
-        
-        await database.execute(users_table.update().where(users_table.c.id == user_id).values(avatar_url=avatar_url))
-        return {"status": "success", "avatar_url": avatar_url}
-        
-    except Exception as e:
-        logger.error(f"UPLOAD ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error interacting with storage: {str(e)}")
+    # Anti-Fraud: Passport Hashing
+    raw_passport = f"{passport['series'].upper()}{passport['number']}"
+    passport_hash = hashlib.sha256(raw_passport.encode()).hexdigest()
+    
+    # Check for duplicate passports
+    duplicate_query = users_table.select().where(
+        (users_table.c.passport_hash == passport_hash) & 
+        (users_table.c.id != user_id)
+    )
+    existing_passport = await database.fetch_one(duplicate_query)
+    if existing_passport:
+        raise HTTPException(status_code=400, detail="Identity already registered with another account")
+    
+    # Liveness Image Storage
+    liveness_data = data.get("liveness_img")
+    liveness_url = None
+    if liveness_data and liveness_data.startswith("data:image"):
+        try:
+            header, encoded = liveness_data.split(",", 1)
+            img_data = base64.b64decode(encoded)
+            filename = f"liveness_{user_id.replace('#', '')}_{uuid.uuid4().hex[:8]}.jpg"
+            filepath = os.path.join(LIVENESS_UPLOAD_DIR, filename)
+            with open(filepath, "wb") as f:
+                f.write(img_data)
+            liveness_url = f"/storage/liveness/{filename}"
+        except Exception as e:
+            logger.error(f"LIVENESS STORAGE ERROR: {str(e)}")
 
-@app.post("/api/v1/auth/send-sms-verification")
-async def send_sms_verification(request: Request, authorization: Optional[str] = Header(None)):
-    await get_current_user_id(authorization)
-    data = await request.json()
-    phone = data.get("phone")
-    if not phone: raise HTTPException(status_code=400, detail="Phone is required")
-    
-    code = str(random.randint(1000, 9999))
-    expires = datetime.utcnow() + timedelta(minutes=2)
-    sms_codes[phone] = {"code": code, "expires": expires}
-    
-    logger.info(f"DEBUG: SMS CODE FOR {phone} IS {code}")
-    return {"status": "success", "message": "SMS code sent"}
-
-@app.post("/api/v1/auth/verify-sms-and-book")
-async def verify_sms_and_book(request: Request, authorization: Optional[str] = Header(None)):
-    user_id = await get_current_user_id(authorization)
-    data = await request.json()
-    phone, code, listing_id, dates = data.get("phone"), data.get("code"), data.get("listing_id"), data.get("dates")
-    
-    if not all([phone, code, listing_id, dates]): raise HTTPException(status_code=400, detail="Missing required fields")
-    
-    stored = sms_codes.get(phone)
-    if not stored or stored["code"] != code or datetime.utcnow() > stored["expires"]:
-        raise HTTPException(status_code=400, detail="Invalid or expired code")
-    
-    await database.execute(users_table.update().where(users_table.c.id == user_id).values(phone=phone))
-    
-    await database.execute(bookings_table.insert().values(
-        user_id=user_id,
-        listing_id=str(listing_id),
-        dates=json.dumps(dates),
-        status="pending",
-        created_at=datetime.utcnow()
+    # Update user record
+    await database.execute(users_table.update().where(users_table.c.id == user_id).values(
+        passport_hash=passport_hash,
+        is_verified=False # Remains false until admin manual check
     ))
-    
-    if phone in sms_codes: del sms_codes[phone]
-    return {"status": "success", "message": "Phone verified and booking created"}
 
-@app.get("/api/v1/users/me")
-async def get_me(authorization: Optional[str] = Header(None)):
+    # Log system notification
+    await create_system_notification(user_id, "Верификация", "Ваши данные отправлены на проверку модератором.", "info")
+
+    return {"status": "success", "message": "Verification data submitted"}
+
+@app.get("/api/v1/bookings/me")
+async def get_my_bookings(authorization: Optional[str] = Header(None)):
+    user_id = await get_current_user_id(authorization)
+    
+    # Query with join to get listing info
+    query = f"""
+        SELECT b.*, l.title, l.location, l.image, l.price as base_price 
+        FROM bookings b
+        JOIN listings l ON b.listing_id = l.id
+        WHERE b.user_id = :user_id
+        ORDER BY b.created_at DESC
+    """
+    rows = await database.fetch_all(query=query, values={"user_id": user_id})
+    
+    bookings = [dict(r) for r in rows]
+    
+    # Categorize
+    result = {
+        "active": [],   # pending
+        "payment": [],  # pending_check or confirmed (if not yet in history)
+        "history": []   # rejected or confirmed (if date passed)
+    }
+    
+    now = datetime.utcnow()
+    
+    for b in bookings:
+        # Example logic for categorization
+        if b["status"] == "pending":
+            result["active"].append(b)
+        elif b["status"] == "pending_check":
+            result["payment"].append(b)
+        elif b["status"] in ["confirmed", "rejected"]:
+            # If confirmed but date not passed, maybe keep in active/payment?
+            # For simplicity, confirmed goes to history here
+            result["history"].append(b)
+            
+    return result
+
+@app.get("/api/v1/messages/notifications/{user_id}")
+async def get_system_notifications(user_id: str, authorization: Optional[str] = Header(None)):
+    await get_current_user_id(authorization) # Verify auth
+    query = system_notifications_table.select().where(system_notifications_table.c.user_id == user_id).order_by(system_notifications_table.c.created_at.desc())
+    rows = await database.fetch_all(query)
+    return [dict(r) for r in rows]
+
+@app.post("/api/v1/users/change-password")
+async def change_password(data: ChangePasswordSchema, authorization: Optional[str] = Header(None)):
     user_id = await get_current_user_id(authorization)
     user = await database.fetch_one(users_table.select().where(users_table.c.id == user_id))
-    if not user: raise HTTPException(status_code=404, detail="User not found")      
-    return dict(user)
+    
+    if not user or not bcrypt.checkpw(data.old_password.encode('utf-8'), user['password'].encode('utf-8')):
+        raise HTTPException(status_code=400, detail="Неверный текущий пароль")
+    
+    hashed_pass = bcrypt.hashpw(data.new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    await database.execute(users_table.update().where(users_table.c.id == user_id).values(password=hashed_pass))
+    
+    return {"status": "success", "message": "Пароль обновлен"}
+
+@app.delete("/api/v1/users/delete-passport")
+async def delete_passport(authorization: Optional[str] = Header(None)):
+    user_id = await get_current_user_id(authorization)
+    await database.execute(users_table.update().where(users_table.c.id == user_id).values(
+        passport_hash=None,
+        is_verified=False
+    ))
+    return {"status": "success", "message": "Данные паспорта удалены"}
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+    sync_db_url = DATABASE_URL
+    if sync_db_url.startswith("postgresql+asyncpg://"):
+        sync_db_url = sync_db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+    elif sync_db_url.startswith("sqlite+aiosqlite://"):
+        sync_db_url = sync_db_url.replace("sqlite+aiosqlite://", "sqlite://")
+    engine = create_engine(sync_db_url)
+    metadata.create_all(engine)
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
 
 @app.get("/api/v1/listings")
 async def get_listings():
-    query = listings_table.select().where(listings_table.c.status == 'active') 
+    query = listings_table.select().where(listings_table.c.status == "active")
     rows = await database.fetch_all(query)
     return [dict(r) for r in rows]
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5005)))

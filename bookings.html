@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои Бронирования - DachaGo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-blue: #2599C8;
+            --soft-gray: #F7F9FC;
+            --text-dark: #1A1D1E;
+            --text-light: #9BA5B7;
+            --white: #FFFFFF;
+            --danger: #FF3B30;
+            --success: #34C759;
+            --warning: #FFCC00;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--soft-gray); 
+            margin: 0; 
+            padding-bottom: 110px; 
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .header {
+            background: var(--white);
+            padding: 60px 24px 20px;
+            border-radius: 0 0 35px 35px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .back-btn {
+            width: 45px;
+            height: 45px;
+            background: var(--soft-gray);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dark);
+            text-decoration: none;
+        }
+        .title { font-weight: 900; font-size: 20px; margin: 0; }
+
+        /* TABS */
+        .tabs-container {
+            display: flex;
+            background: #E2E8F0;
+            padding: 4px;
+            border-radius: 16px;
+            gap: 4px;
+        }
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px 5px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-light);
+            cursor: pointer;
+            border-radius: 12px;
+            transition: 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .tab-item.active {
+            background: var(--white);
+            color: var(--brand-blue);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .tab-item i { font-size: 14px; }
+
+        /* CONTENT */
+        .content { padding: 20px; }
+        
+        .booking-card {
+            background: var(--white);
+            border-radius: 25px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            border: 1px solid #F0F3F6;
+            position: relative;
+        }
+        
+        .card-top { display: flex; gap: 15px; margin-bottom: 15px; }
+        .property-img { width: 80px; height: 80px; border-radius: 15px; object-fit: cover; }
+        .property-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .property-title { font-weight: 800; font-size: 15px; margin-bottom: 4px; }
+        .property-loc { font-size: 11px; color: var(--text-light); font-weight: 600; }
+        
+        .card-dates {
+            background: var(--soft-gray);
+            padding: 12px 15px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .card-dates i { color: var(--brand-blue); }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #F0F3F6;
+            padding-top: 15px;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-pending { background: #FFF3E0; color: #EF6C00; }
+        .status-confirmed { background: #E8F5E9; color: #2E7D32; }
+        .status-hot { background: #FFEBEE; color: #D32F2F; border: 1.5px solid #FFCDD2; animation: blink 1.5s infinite; }
+        
+        @keyframes blink { 
+            0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; }
+        }
+
+        .price-val { font-weight: 900; font-size: 16px; color: var(--brand-blue); }
+
+        /* HOT SECTION STYLES */
+        .timer-row {
+            background: #FF3B30;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: 900;
+            font-size: 14px;
+        }
+        .upload-btn {
+            background: var(--brand-blue);
+            color: white;
+            padding: 12px;
+            border-radius: 15px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            border: none;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 100px 30px;
+            color: var(--text-light);
+        }
+        .empty-state i { font-size: 50px; margin-bottom: 20px; opacity: 0.3; }
+        .empty-state p { font-weight: 700; font-size: 15px; }
+
+        /* BOTTOM NAV */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 15px 24px 35px; display: flex; justify-content: space-between; align-items: center; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.05); z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #D1D8E0; cursor: pointer; text-decoration: none; transition: 0.3s; }
+        .nav-item.active { color: var(--brand-blue); }
+        .nav-item i { font-size: 22px; }
+        .nav-item span { font-size: 10px; font-weight: 900; text-transform: uppercase; }
+        
+        .nav-create { position: relative; margin-top: -65px; }
+        .create-btn { background: var(--brand-blue); width: 74px; height: 74px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 26px; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.4); border: 6px solid var(--white); cursor: pointer; transition: 0.3s; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-top">
+            <a href="profile.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
+            <h1 class="title">Мои Бронирования</h1>
+            <div style="width: 45px;"></div>
+        </div>
+        
+        <div class="tabs-container">
+            <div class="tab-item active" data-tab="active">
+                <i class="fas fa-clock"></i>
+                <span>Активные</span>
+            </div>
+            <div class="tab-item" data-tab="payment">
+                <i class="fas fa-fire"></i>
+                <span>Оплата</span>
+            </div>
+            <div class="tab-item" data-tab="history">
+                <i class="fas fa-history"></i>
+                <span>История</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="content" id="bookings-list">
+        <!-- Bookings will be loaded here -->
+        <div class="empty-state">
+            <i class="fas fa-calendar-alt"></i>
+            <p>Загрузка ваших бронирований...</p>
+        </div>
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+        <a href="map.html" class="nav-item">
+            <i class="fas fa-map-marked-alt"></i>
+            <span>Карта</span>
+        </a>
+        <a href="index.html" class="nav-item">
+            <i class="fas fa-th-large"></i>
+            <span>Главная</span>
+        </a>
+        <div class="nav-create">
+            <a href="create.html" class="create-btn"><i class="fas fa-plus"></i></a>
+        </div>
+        <a href="messages.html" class="nav-item">
+            <i class="fas fa-comment-dots"></i>
+            <span>Чаты</span>
+        </a>
+        <a href="profile.html" class="nav-item active">
+            <i class="fas fa-user-circle"></i>
+            <span>Профиль</span>
+        </a>
+    </nav>
+
+    <script src="config.js"></script>
+    <script src="bookings.js"></script>
+</body>
+</html>

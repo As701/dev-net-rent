@@ -223,7 +223,12 @@
             </div>
             <div class="policy-grid" style="margin-top: 15px;">
                 <div class="policy-option active" data-policy="deposit"><i class="fas fa-percentage"></i><div class="policy-info"><h4>Аванс 10%</h4><p>Бронь за часть</p></div></div>
-                <div class="policy-option" data-policy="full"><i class="fas fa-wallet"></i><div class="policy-info"><h4>Оплата 100%</h4><p>Вся сумма сразу</p></div></div>
+                <div class="policy-option" id="bargaining-toggle-btn" style="border-style: dashed;"><i class="fas fa-comments-dollar"></i><div class="policy-info"><h4>Разрешить торг</h4><p>Диапазон -12% / +6%</p></div></div>
+            </div>
+            <div id="bargaining-hint" style="display: none; background: #FFF9E6; padding: 12px 15px; border-radius: 15px; margin-top: 10px; border: 1px solid #FFE58F;">
+                <p style="font-size: 10px; color: #856404; margin: 0; line-height: 1.4;">
+                    <i class="fas fa-info-circle"></i> Клиенты смогут предлагать цену в диапазоне от -12% до +6% от вашей стоимости. Заявки с повышенной стоимостью поднимаются выше в очереди.
+                </p>
             </div>
         </div>
 
@@ -324,9 +329,58 @@
                 <div id="desc-count">0 / 50 000</div>
             </div>
         </div>
+
+        <!-- 11. БЕЗОПАСНОСТЬ И ВЕРИФИКАЦИЯ (ANTI-FRAUD) -->
+        <div class="form-section" id="verification-section">
+            <span class="section-label">Верификация владельца <span style="color: var(--primary-blue); margin-left: 5px;"><i class="fas fa-shield-alt"></i></span></span>
+            <div class="calendar-card" style="padding: 20px;">
+                <p style="font-size: 11px; color: var(--text-light); margin-bottom: 15px; line-height: 1.4;">Для защиты от мошенничества мы требуем подтверждение личности. Данные зашифрованы и не передаются третьим лицам.</p>
+                
+                <div class="policy-grid" style="margin-bottom: 20px;">
+                    <div class="input-group" style="margin-bottom: 0; padding: 12px 15px;">
+                        <span style="font-weight: 800; color: var(--text-light); font-size: 9px;">СЕРИЯ</span>
+                        <input type="text" id="passport-series" placeholder="AA" maxlength="2" style="text-transform: uppercase;">
+                    </div>
+                    <div class="input-group" style="margin-bottom: 0; padding: 12px 15px;">
+                        <span style="font-weight: 800; color: var(--text-light); font-size: 9px;">НОМЕР</span>
+                        <input type="text" id="passport-number" placeholder="1234567" maxlength="7">
+                    </div>
+                </div>
+
+                <div id="liveness-check-container" style="text-align: center; background: var(--soft-gray); border-radius: 20px; padding: 20px; border: 1px dashed #D1D8E0;">
+                    <div id="camera-preview-wrap" style="width: 150px; height: 150px; border-radius: 50%; overflow: hidden; margin: 0 auto 15px; background: #eee; border: 4px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none;">
+                        <video id="liveness-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                        <canvas id="liveness-canvas" style="display: none;"></canvas>
+                    </div>
+                    
+                    <div id="liveness-placeholder">
+                        <i class="fas fa-user-shield" style="font-size: 40px; color: var(--text-light); margin-bottom: 10px; display: block;"></i>
+                        <span style="font-size: 12px; font-weight: 800; display: block;">Liveness Check</span>
+                        <p style="font-size: 10px; color: var(--text-light); margin: 5px 0 15px;">Сделайте селфи с жестом для подтверждения, что вы — живой человек</p>
+                    </div>
+
+                    <button type="button" class="mode-btn" id="start-liveness-btn" style="background: white; border: 1.5px solid var(--primary-blue); color: var(--primary-blue); font-size: 11px; width: 100%; padding: 12px;">Начать проверку камеры</button>
+                    
+                    <div id="liveness-instructions" style="display: none; margin-top: 15px;">
+                        <div style="background: var(--primary-blue); color: white; padding: 8px 15px; border-radius: 12px; font-size: 11px; font-weight: 800;" id="gesture-instruction">Покажите жест: 🖖🏻 (Vulkan)</div>
+                        <button type="button" class="publish-btn" id="capture-liveness-btn" style="margin-top: 10px; padding: 12px; font-size: 13px;">Сделать снимок</button>
+                    </div>
+
+                    <div id="liveness-success" style="display: none; margin-top: 10px;">
+                        <span style="color: var(--success-green); font-size: 12px; font-weight: 800;"><i class="fas fa-check-circle"></i> Проверка пройдена</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="publish-frame"><button class="publish-btn" id="publish-btn" disabled>Опубликовать</button></div>
+    <div class="publish-frame">
+        <div id="payment-timer-wrap" style="display: none; text-align: center; margin-bottom: 15px;">
+            <div style="font-size: 10px; font-weight: 800; color: var(--text-light); margin-bottom: 5px;">ВРЕМЯ НА ОПЛАТУ РАЗМЕЩЕНИЯ:</div>
+            <div id="payment-timer" style="font-size: 18px; font-weight: 900; color: var(--danger-red);">10:00</div>
+        </div>
+        <button class="publish-btn" id="publish-btn" disabled>Опубликовать</button>
+    </div>
 
     <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
     <script src="config.js"></script>
