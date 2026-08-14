@@ -376,7 +376,38 @@ async def send_otp_email(to_email: str, name: str, code: str):
         logger.error(f"Error sending OTP email: {str(e)}")
         return False
 
-DATABASE_URL, IS_POSTGRES = _prepare_db_url(RAW_DATABASE_URL)
+def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
+    """Parse DATABASE_URL environment variable and return (async_url, is_postgres).
+    Ensures asyncpg receives sslmode=require parameter for PostgreSQL/Supabase connections.
+    Leaves SQLite untouched.
+    """
+    if not raw_url:
+        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "database.sqlite"))
+        return f"sqlite+aiosqlite:///{db_path}", False
+
+    if raw_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
+        url = raw_url.replace("postgres://", "postgresql://", 1)
+        if not url.startswith("postgresql+asyncpg://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+        parsed = urlparse(url)
+        query_params = parse_qs(parsed.query)
+        query_params["sslmode"] = ["require"]
+
+        async_query = urlencode(query_params, doseq=True)
+        async_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, async_query, parsed.fragment))
+        return async_url, True
+
+    return raw_url, False
+
+def _get_postgres_ssl_context():
+    """Create an explicit SSLContext for PostgreSQL that enforces SSL/TLS negotiation
+    while accepting self-signed/proxy certificates on cloud database providers like Render and Supabase.
+    """
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
 
 def _get_candidate_urls(raw_url: Optional[str]) -> List[str]:
     if not raw_url or not raw_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
@@ -386,7 +417,6 @@ def _get_candidate_urls(raw_url: Optional[str]) -> List[str]:
     host = p.hostname or ""
     if host.startswith("dpg-") and ".render.com" in host:
         internal_id = host.split(".")[0]
-        urls.append(urlunparse((p.scheme, p.netloc.replace(host, internal_id + ".render.internal"), p.path, "", "", p.fragment)))
         urls.append(urlunparse((p.scheme, p.netloc.replace(host, internal_id), p.path, "", "", p.fragment)))
     urls.append(raw_url)
     return urls
@@ -431,34 +461,28 @@ async def _connect_database_with_fallback():
         cand_url, cand_is_pg = _prepare_db_url(raw_cand)
         parsed_host = urlparse(cand_url).hostname or ""
 
-        # Attempt SSL modes in order of preference
-        ssl_modes = ["require", _get_postgres_ssl_context(), "prefer", None]
+        db_kwargs = {
+            "ssl": _get_postgres_ssl_context(),
+            "statement_cache_size": 0,
+            "timeout": 15.0,
+            "min_size": 1,
+            "max_size": 3
+        }
 
-        for ssl_mode in ssl_modes:
-            ssl_desc = "ssl_context" if isinstance(ssl_mode, ssl.SSLContext) else str(ssl_mode)
-            db_kwargs = {
-                "statement_cache_size": 0,
-                "timeout": 15.0,
-                "min_size": 1,
-                "max_size": 3
-            }
-            if ssl_mode is not None:
-                db_kwargs["ssl"] = ssl_mode
-
-            cand_db = Database(cand_url, **db_kwargs)
-            try:
-                logger.info(f"Connecting to database host: {parsed_host} ({ssl_desc})...")
-                await asyncio.wait_for(cand_db.connect(), timeout=10.0)
-                logger.info(f"Database Connection SUCCESS via host: {parsed_host} ({ssl_desc})")
-                database = cand_db
-                DATABASE_URL = cand_url
-                IS_POSTGRES = cand_is_pg
-                DB_CONNECTION_ERROR = None
-                return True
-            except Exception as e:
-                err_msg = str(e).splitlines()[0] if str(e) else type(e).__name__
-                logger.warning(f"Connection attempt to host {parsed_host} ({ssl_desc}) failed: {err_msg}")
-                last_exc = e
+        cand_db = Database(cand_url, **db_kwargs)
+        try:
+            logger.info(f"Connecting to database host: {parsed_host} (ssl_context)...")
+            await asyncio.wait_for(cand_db.connect(), timeout=10.0)
+            logger.info(f"Database Connection SUCCESS via host: {parsed_host}")
+            database = cand_db
+            DATABASE_URL = cand_url
+            IS_POSTGRES = cand_is_pg
+            DB_CONNECTION_ERROR = None
+            return True
+        except Exception as e:
+            err_msg = str(e).splitlines()[0] if str(e) else type(e).__name__
+            logger.warning(f"Connection attempt to host {parsed_host} failed: {err_msg}")
+            last_exc = e
 
     if last_exc:
         DB_CONNECTION_ERROR = f"{type(last_exc).__name__}: {str(last_exc)}"
