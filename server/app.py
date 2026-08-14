@@ -28,6 +28,12 @@ logger = logging.getLogger(__name__)
 
 # 1. DATABASE CONFIGURATION
 RAW_DATABASE_URL = os.environ.get("DATABASE_URL")
+IS_RENDER_OR_PROD = bool(os.environ.get("RENDER") or os.environ.get("ENVIRONMENT") == "production")
+
+if IS_RENDER_OR_PROD and not RAW_DATABASE_URL:
+    raise RuntimeError(
+        "CRITICAL PRODUCTION ERROR: DATABASE_URL environment variable is missing in Production environment!"
+    )
 
 def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
     """Parse DATABASE_URL environment variable and return (async_url, is_postgres).
@@ -60,11 +66,11 @@ def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
 DATABASE_URL, IS_POSTGRES = _prepare_db_url(RAW_DATABASE_URL)
 
 if IS_POSTGRES:
-    logger.info("DATABASE: PostgreSQL backend detected. SSL/TLS connection enabled.")
+    logger.info("DATABASE: PostgreSQL backend detected. Enforcing SSL/TLS (ssl='require').")
+    database = Database(DATABASE_URL, ssl="require")
 else:
     logger.info("DATABASE: SQLite backend detected.")
-
-database = Database(DATABASE_URL)
+    database = Database(DATABASE_URL)
 metadata = MetaData()
 
 # 2. STORAGE DIRECTORIES CONFIGURATION
@@ -348,7 +354,18 @@ async def send_otp_email(to_email: str, name: str, code: str):
 # 8. STARTUP & SHUTDOWN
 @app.on_event("startup")
 async def startup():
-    await database.connect()
+    logger.info("=== DACHAGO STARTUP DIAGNOSTICS ===")
+    logger.info(f"Database Driver: {'PostgreSQL (asyncpg)' if IS_POSTGRES else 'SQLite (aiosqlite)'}")
+    logger.info(f"Database Configured: {'YES' if RAW_DATABASE_URL else 'NO (Local SQLite fallback)'}")
+    logger.info(f"SSL Status: {'ENABLED (ssl=require)' if IS_POSTGRES else 'N/A (SQLite)'}")
+
+    try:
+        await database.connect()
+        logger.info("Database Connection: SUCCESS")
+    except Exception as e:
+        err_msg = str(e).splitlines()[0] if str(e) else "Unknown DB connection error"
+        logger.error(f"Database Connection: FAILED - {type(e).__name__}: {err_msg}")
+        raise e
 
     # Execute versioned SQL migrations
     try:
@@ -357,16 +374,26 @@ async def startup():
         except ImportError:
             from migrations.runner import apply_migrations
         apply_migrations(DATABASE_URL)
+        logger.info("Migration Status: SUCCESS")
     except Exception as e:
-        logger.warning(f"Migration runner notice: {e}")
+        err_msg = str(e).splitlines()[0] if str(e) else "Migration notice"
+        logger.warning(f"Migration Status: NOTICE - {type(e).__name__}: {err_msg}")
 
     sync_db_url = DATABASE_URL
-    if sync_db_url.startswith("postgresql+asyncpg://"):
-        sync_db_url = sync_db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+    if IS_POSTGRES:
+        if sync_db_url.startswith("postgresql+asyncpg://"):
+            sync_db_url = sync_db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+        if "ssl=require" in sync_db_url and "sslmode=" not in sync_db_url:
+            sync_db_url = sync_db_url.replace("ssl=require", "sslmode=require")
     elif sync_db_url.startswith("sqlite+aiosqlite://"):
-        sync_db_url = sync_db_url.replace("sqlite+aiosqlite://", "sqlite://")
-    engine = create_engine(sync_db_url)
-    metadata.create_all(engine)
+        sync_db_url = sync_db_url.replace("sqlite+aiosqlite://", "sqlite://", 1)
+
+    try:
+        engine = create_engine(sync_db_url)
+        metadata.create_all(engine)
+    except Exception as e:
+        err_msg = str(e).splitlines()[0] if str(e) else "Table creation notice"
+        logger.warning(f"SQLAlchemy Table Verification Notice: {type(e).__name__}: {err_msg}")
 
     # Soft column migrations for existing tables
     with engine.connect() as conn:
