@@ -493,6 +493,38 @@ async def startup():
 async def shutdown():
     await database.disconnect()
 
+# 8.5 HEALTH & DIAGNOSTIC ENDPOINTS
+@app.get("/")
+async def root():
+    return {
+        "status": "ok",
+        "app": "DachaGo Backend API",
+        "version": "1.0.0",
+        "environment": "production" if IS_RENDER_OR_PROD else "development"
+    }
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "app": "DachaGo"}
+
+@app.get("/health/db")
+async def health_db_check():
+    try:
+        val = await database.fetch_val("SELECT 1")
+        return {
+            "status": "healthy" if val == 1 else "unhealthy",
+            "database": "postgresql" if IS_POSTGRES else "sqlite",
+            "connected": True
+        }
+    except Exception as e:
+        err_msg = str(e).splitlines()[0] if str(e) else "DB check error"
+        return {
+            "status": "unhealthy",
+            "database": "postgresql" if IS_POSTGRES else "sqlite",
+            "connected": False,
+            "error": err_msg
+        }
+
 # 9. AUTH ENDPOINTS
 @app.post("/api/v1/auth/register")
 async def register(user_data: UserRegister, background_tasks: BackgroundTasks):
