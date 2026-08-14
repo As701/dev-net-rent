@@ -431,11 +431,11 @@ async def _connect_database_with_fallback():
         cand_url, cand_is_pg = _prepare_db_url(raw_cand)
         parsed_host = urlparse(cand_url).hostname or ""
 
-        # Try with SSL Context first, then without SSL if rejected
-        ssl_modes = [_get_postgres_ssl_context(), None]
+        # Attempt SSL modes in order of preference
+        ssl_modes = ["require", _get_postgres_ssl_context(), "prefer", None]
 
         for ssl_mode in ssl_modes:
-            ssl_desc = "ssl_context" if ssl_mode is not None else "no_ssl"
+            ssl_desc = "ssl_context" if isinstance(ssl_mode, ssl.SSLContext) else str(ssl_mode)
             db_kwargs = {
                 "statement_cache_size": 0,
                 "timeout": 15.0,
