@@ -315,7 +315,10 @@ async def startup():
 
     # Execute versioned SQL migrations
     try:
-        from server.migrations.runner import apply_migrations
+        try:
+            from server.migrations.runner import apply_migrations
+        except ImportError:
+            from migrations.runner import apply_migrations
         apply_migrations(DATABASE_URL)
     except Exception as e:
         logger.warning(f"Migration runner notice: {e}")
