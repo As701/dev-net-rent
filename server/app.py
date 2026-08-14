@@ -378,6 +378,21 @@ async def send_otp_email(to_email: str, name: str, code: str):
 
 DATABASE_URL, IS_POSTGRES = _prepare_db_url(RAW_DATABASE_URL)
 
+def _get_candidate_urls(raw_url: Optional[str]) -> List[str]:
+    if not raw_url or not raw_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
+        return [raw_url] if raw_url else []
+    urls = []
+    p = urlparse(raw_url)
+    host = p.hostname or ""
+    if host.startswith("dpg-") and ".render.com" in host:
+        internal_id = host.split(".")[0]
+        urls.append(urlunparse((p.scheme, p.netloc.replace(host, internal_id + ".render.internal"), p.path, "", "", p.fragment)))
+        urls.append(urlunparse((p.scheme, p.netloc.replace(host, internal_id), p.path, "", "", p.fragment)))
+    urls.append(raw_url)
+    return urls
+
+DATABASE_URL, IS_POSTGRES = _prepare_db_url(RAW_DATABASE_URL)
+
 if IS_POSTGRES:
     ssl_context = _get_postgres_ssl_context()
     parsed_host = urlparse(DATABASE_URL).hostname or ""
@@ -391,7 +406,6 @@ if IS_POSTGRES:
         "max_size": 3
     }
     logger.info("DATABASE: PostgreSQL backend detected (ssl_context, statement_cache_size=0).")
-
     database = Database(DATABASE_URL, **db_kwargs)
 else:
     logger.info("DATABASE: SQLite backend detected.")
@@ -399,10 +413,57 @@ else:
 
 DB_CONNECTION_ERROR: Optional[str] = None
 
+async def _connect_database_with_fallback():
+    global database, DATABASE_URL, IS_POSTGRES, DB_CONNECTION_ERROR
+    if not IS_POSTGRES:
+        try:
+            await asyncio.wait_for(database.connect(), timeout=5.0)
+            DB_CONNECTION_ERROR = None
+            return True
+        except Exception as e:
+            DB_CONNECTION_ERROR = f"{type(e).__name__}: {str(e)}"
+            return False
+
+    candidates = _get_candidate_urls(RAW_DATABASE_URL)
+    last_exc = None
+
+    for raw_cand in candidates:
+        cand_url, cand_is_pg = _prepare_db_url(raw_cand)
+        parsed_host = urlparse(cand_url).hostname or ""
+
+        db_kwargs = {
+            "statement_cache_size": 0,
+            "timeout": 15.0,
+            "min_size": 1,
+            "max_size": 3
+        }
+        is_internal = parsed_host.startswith("dpg-") and not parsed_host.endswith(".render.com")
+        if not is_internal:
+            db_kwargs["ssl"] = _get_postgres_ssl_context()
+
+        cand_db = Database(cand_url, **db_kwargs)
+        try:
+            logger.info(f"Connecting to database host: {parsed_host}...")
+            await asyncio.wait_for(cand_db.connect(), timeout=10.0)
+            logger.info(f"Database Connection SUCCESS via host: {parsed_host}")
+            database = cand_db
+            DATABASE_URL = cand_url
+            IS_POSTGRES = cand_is_pg
+            DB_CONNECTION_ERROR = None
+            return True
+        except Exception as e:
+            err_msg = str(e).splitlines()[0] if str(e) else type(e).__name__
+            logger.warning(f"Connection attempt to host {parsed_host} failed: {err_msg}")
+            last_exc = e
+
+    if last_exc:
+        DB_CONNECTION_ERROR = f"{type(last_exc).__name__}: {str(last_exc)}"
+        logger.error(f"All database connection attempts failed - Last Error: {DB_CONNECTION_ERROR}")
+    return False
+
 # 8. STARTUP & SHUTDOWN
 @app.on_event("startup")
 async def startup():
-    global DB_CONNECTION_ERROR
     logger.info("=== DACHAGO STARTUP DIAGNOSTICS ===")
     logger.info(f"Database Driver: {'PostgreSQL (asyncpg)' if IS_POSTGRES else 'SQLite (aiosqlite)'}")
     logger.info(f"Database Configured: {'YES' if RAW_DATABASE_URL else 'NO (Local SQLite fallback)'}")
@@ -419,13 +480,7 @@ async def startup():
         except Exception:
             logger.info("Target DB: URL configured")
 
-    try:
-        await asyncio.wait_for(database.connect(), timeout=30.0)
-        logger.info("Database Connection: SUCCESS")
-        DB_CONNECTION_ERROR = None
-    except Exception as e:
-        DB_CONNECTION_ERROR = f"{type(e).__name__}: {str(e)}"
-        logger.error(f"Database Connection: FAILED - {DB_CONNECTION_ERROR}")
+    await _connect_database_with_fallback()
 
     # Execute versioned SQL migrations
     try:
