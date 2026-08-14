@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 # 1. DATABASE CONFIGURATION
-RAW_DATABASE_URL = os.environ.get("DATABASE_URL")
+RAW_DATABASE_URL = os.environ.get("INTERNAL_DATABASE_URL") or os.environ.get("DATABASE_URL")
 IS_RENDER_OR_PROD = bool(os.environ.get("RENDER") or os.environ.get("ENVIRONMENT") == "production")
 
 if IS_RENDER_OR_PROD and not RAW_DATABASE_URL:
@@ -411,8 +411,6 @@ async def startup():
     except Exception as e:
         err_msg = str(e).splitlines()[0] if str(e) else "Unknown DB error"
         logger.error(f"Database Connection: FAILED - {type(e).__name__}: {err_msg}")
-        if IS_RENDER_OR_PROD:
-            raise e
 
     # Execute versioned SQL migrations
     try:
