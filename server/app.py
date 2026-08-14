@@ -385,16 +385,12 @@ if IS_POSTGRES:
 
     db_kwargs = {
         "ssl": ssl_context,
+        "statement_cache_size": 0,
         "timeout": 30.0,
         "min_size": 1,
         "max_size": 3
     }
-
-    if "pooler.supabase.com" in parsed_host or parsed_port == 6543:
-        db_kwargs["statement_cache_size"] = 0
-        logger.info("DATABASE: PostgreSQL Supavisor pooler detected. Enforcing statement_cache_size=0.")
-    else:
-        logger.info("DATABASE: PostgreSQL backend detected (ssl_context, timeout=30s).")
+    logger.info("DATABASE: PostgreSQL backend detected (ssl_context, statement_cache_size=0).")
 
     database = Database(DATABASE_URL, **db_kwargs)
 else:
