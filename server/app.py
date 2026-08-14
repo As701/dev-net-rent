@@ -66,11 +66,18 @@ def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
 DATABASE_URL, IS_POSTGRES = _prepare_db_url(RAW_DATABASE_URL)
 
 if IS_POSTGRES:
-    logger.info("DATABASE: PostgreSQL backend detected. Enforcing SSL/TLS (ssl='require').")
-    database = Database(DATABASE_URL, ssl="require")
+    logger.info("DATABASE: PostgreSQL backend detected. Enforcing SSL/TLS (ssl='require'), statement_cache_size=0, pool limits (1..3).")
+    database = Database(
+        DATABASE_URL,
+        ssl="require",
+        min_size=1,
+        max_size=3,
+        statement_cache_size=0
+    )
 else:
     logger.info("DATABASE: SQLite backend detected.")
     database = Database(DATABASE_URL)
+
 metadata = MetaData()
 
 # 2. STORAGE DIRECTORIES CONFIGURATION
@@ -358,6 +365,17 @@ async def startup():
     logger.info(f"Database Driver: {'PostgreSQL (asyncpg)' if IS_POSTGRES else 'SQLite (aiosqlite)'}")
     logger.info(f"Database Configured: {'YES' if RAW_DATABASE_URL else 'NO (Local SQLite fallback)'}")
     logger.info(f"SSL Status: {'ENABLED (ssl=require)' if IS_POSTGRES else 'N/A (SQLite)'}")
+
+    if RAW_DATABASE_URL:
+        try:
+            p = urlparse(RAW_DATABASE_URL)
+            safe_host = p.hostname or "unknown"
+            if p.port:
+                safe_host += f":{p.port}"
+            db_name = p.path.strip('/')
+            logger.info(f"Target DB: scheme={p.scheme}, host={safe_host}, db={db_name}, pooler_mode={'statement_cache_size=0' if IS_POSTGRES else 'N/A'}")
+        except Exception:
+            logger.info("Target DB: URL configured")
 
     try:
         await database.connect()
