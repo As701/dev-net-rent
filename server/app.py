@@ -39,6 +39,7 @@ if IS_RENDER_OR_PROD and not RAW_DATABASE_URL:
 def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
     """Parse DATABASE_URL environment variable and return (async_url, is_postgres).
     Ensures asyncpg receives correct driver scheme for PostgreSQL.
+    Converts external Render DB hostnames to internal private hostnames when running on Render.
     Leaves SQLite untouched.
     """
     if not raw_url:
@@ -47,6 +48,15 @@ def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
 
     if raw_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
         url = raw_url.replace("postgres://", "postgresql://", 1)
+
+        # Normalize external Render database URL to internal private network host when running on Render
+        parsed_raw = urlparse(url)
+        raw_host = parsed_raw.hostname or ""
+        if IS_RENDER_OR_PROD and raw_host.startswith("dpg-") and ".render.com" in raw_host:
+            internal_host = raw_host.split(".")[0]
+            netloc = parsed_raw.netloc.replace(raw_host, internal_host, 1)
+            url = urlunparse((parsed_raw.scheme, netloc, parsed_raw.path, "", "", parsed_raw.fragment))
+
         if not url.startswith("postgresql+asyncpg://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
