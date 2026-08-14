@@ -80,22 +80,16 @@ if IS_POSTGRES:
     parsed_port = urlparse(DATABASE_URL).port or 5432
 
     db_kwargs = {
+        "ssl": "prefer",
         "min_size": 1,
         "max_size": 3
     }
 
-    # Render internal private database connections (host: dpg-... without .render.com) do NOT use SSL
-    is_internal_render = parsed_host.startswith("dpg-") and not parsed_host.endswith(".render.com")
-
-    if is_internal_render:
-        logger.info("DATABASE: Render Internal Private PostgreSQL detected (no SSL required).")
-    else:
-        logger.info("DATABASE: External Cloud PostgreSQL backend detected. Enforcing SSLContext (CERT_NONE).")
-        db_kwargs["ssl"] = _get_postgres_ssl_context()
-
     if "pooler.supabase.com" in parsed_host or parsed_port == 6543:
         db_kwargs["statement_cache_size"] = 0
         logger.info("DATABASE: PostgreSQL Supavisor pooler detected. Enforcing statement_cache_size=0.")
+    else:
+        logger.info("DATABASE: PostgreSQL backend detected (ssl='prefer').")
 
     database = Database(DATABASE_URL, **db_kwargs)
 else:
