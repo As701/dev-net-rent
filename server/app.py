@@ -10,7 +10,8 @@ import hashlib
 import base64
 import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List, Dict, Any
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from typing import Optional, List, Dict, Any, Tuple
 from pydantic import BaseModel, EmailStr, Field
 from fastapi import FastAPI, HTTPException, Request, Header, BackgroundTasks, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,14 +25,44 @@ from supabase import create_client, Client
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 # 1. DATABASE CONFIGURATION
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-elif not DATABASE_URL:
-    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "database.sqlite"))
-    DATABASE_URL = f"sqlite+aiosqlite:///{db_path}"
+RAW_DATABASE_URL = os.environ.get("DATABASE_URL")
+
+def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
+    """Parse DATABASE_URL environment variable and return (async_url, is_postgres).
+    Ensures asyncpg receives ssl=require parameter for PostgreSQL/Supabase connections.
+    Leaves SQLite untouched.
+    """
+    if not raw_url:
+        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "database.sqlite"))
+        return f"sqlite+aiosqlite:///{db_path}", False
+
+    if raw_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
+        url = raw_url.replace("postgres://", "postgresql://", 1)
+        if not url.startswith("postgresql+asyncpg://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+        parsed = urlparse(url)
+        query_params = parse_qs(parsed.query)
+
+        # Force ssl=require for asyncpg if ssl or sslmode is not explicitly 'disable'/'off'
+        ssl_val = query_params.get("ssl", [None])[0] or query_params.get("sslmode", [None])[0]
+        if not ssl_val or ssl_val not in ("disable", "off", "false", "0"):
+            query_params["ssl"] = ["require"]
+
+        async_query = urlencode(query_params, doseq=True)
+        async_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, async_query, parsed.fragment))
+        return async_url, True
+
+    return raw_url, False
+
+DATABASE_URL, IS_POSTGRES = _prepare_db_url(RAW_DATABASE_URL)
+
+if IS_POSTGRES:
+    logger.info("DATABASE: PostgreSQL backend detected. SSL/TLS connection enabled.")
+else:
+    logger.info("DATABASE: SQLite backend detected.")
 
 database = Database(DATABASE_URL)
 metadata = MetaData()

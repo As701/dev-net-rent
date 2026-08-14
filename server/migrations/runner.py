@@ -7,10 +7,20 @@ logger.setLevel(logging.INFO)
 
 def apply_migrations(db_url: str):
     sync_url = db_url
-    if sync_url.startswith("postgresql+asyncpg://"):
-        sync_url = sync_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+    if "postgresql" in sync_url or "postgres" in sync_url:
+        if sync_url.startswith("postgresql+asyncpg://"):
+            sync_url = sync_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+        elif sync_url.startswith(("postgresql://", "postgres://")):
+            sync_url = sync_url.replace("postgres://", "postgresql://", 1)
+            sync_url = sync_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+        if "ssl=require" in sync_url and "sslmode=" not in sync_url:
+            sync_url = sync_url.replace("ssl=require", "sslmode=require")
+        elif "sslmode=" not in sync_url:
+            sep = "&" if "?" in sync_url else "?"
+            sync_url += f"{sep}sslmode=require"
     elif sync_url.startswith("sqlite+aiosqlite://"):
-        sync_url = sync_url.replace("sqlite+aiosqlite://", "sqlite://")
+        sync_url = sync_url.replace("sqlite+aiosqlite://", "sqlite://", 1)
 
     engine = create_engine(sync_url)
 
