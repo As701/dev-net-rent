@@ -214,7 +214,11 @@ messages_table = Table(
 )
 
 # 4. JWT & SECURITY CONFIGURATION
-SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or os.environ.get("JWT_SECRET") or "DACHAGO_ULTRA_SECURE_PRODUCTION_KEY_2026"
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or os.environ.get("JWT_SECRET")
+if not SECRET_KEY:
+    logger.warning("SECURITY WARNING: JWT_SECRET_KEY is not set in environment variables! Using fallback key.")
+    SECRET_KEY = "DACHAGO_ULTRA_SECURE_PRODUCTION_KEY_2026"
+
 ALGORITHM = "HS256"
 
 app = FastAPI(title="DachaGo API", version="1.0.0")
