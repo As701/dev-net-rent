@@ -376,6 +376,31 @@ async def send_otp_email(to_email: str, name: str, code: str):
         logger.error(f"Error sending OTP email: {str(e)}")
         return False
 
+DATABASE_URL, IS_POSTGRES = _prepare_db_url(RAW_DATABASE_URL)
+
+if IS_POSTGRES:
+    ssl_context = _get_postgres_ssl_context()
+    parsed_host = urlparse(DATABASE_URL).hostname or ""
+    parsed_port = urlparse(DATABASE_URL).port or 5432
+
+    db_kwargs = {
+        "ssl": ssl_context,
+        "timeout": 30.0,
+        "min_size": 1,
+        "max_size": 3
+    }
+
+    if "pooler.supabase.com" in parsed_host or parsed_port == 6543:
+        db_kwargs["statement_cache_size"] = 0
+        logger.info("DATABASE: PostgreSQL Supavisor pooler detected. Enforcing statement_cache_size=0.")
+    else:
+        logger.info("DATABASE: PostgreSQL backend detected (ssl_context, timeout=30s).")
+
+    database = Database(DATABASE_URL, **db_kwargs)
+else:
+    logger.info("DATABASE: SQLite backend detected.")
+    database = Database(DATABASE_URL)
+
 DB_CONNECTION_ERROR: Optional[str] = None
 
 # 8. STARTUP & SHUTDOWN
@@ -399,7 +424,7 @@ async def startup():
             logger.info("Target DB: URL configured")
 
     try:
-        await asyncio.wait_for(database.connect(), timeout=10.0)
+        await asyncio.wait_for(database.connect(), timeout=30.0)
         logger.info("Database Connection: SUCCESS")
         DB_CONNECTION_ERROR = None
     except Exception as e:
