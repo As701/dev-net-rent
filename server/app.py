@@ -80,7 +80,7 @@ if IS_POSTGRES:
     parsed_port = urlparse(DATABASE_URL).port or 5432
 
     db_kwargs = {
-        "ssl": "prefer",
+        "ssl": True,
         "min_size": 1,
         "max_size": 3
     }
@@ -89,7 +89,7 @@ if IS_POSTGRES:
         db_kwargs["statement_cache_size"] = 0
         logger.info("DATABASE: PostgreSQL Supavisor pooler detected. Enforcing statement_cache_size=0.")
     else:
-        logger.info("DATABASE: PostgreSQL backend detected (ssl='prefer').")
+        logger.info("DATABASE: PostgreSQL backend detected (ssl=True).")
 
     database = Database(DATABASE_URL, **db_kwargs)
 else:
