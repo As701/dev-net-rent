@@ -431,30 +431,34 @@ async def _connect_database_with_fallback():
         cand_url, cand_is_pg = _prepare_db_url(raw_cand)
         parsed_host = urlparse(cand_url).hostname or ""
 
-        db_kwargs = {
-            "statement_cache_size": 0,
-            "timeout": 15.0,
-            "min_size": 1,
-            "max_size": 3
-        }
-        is_internal = parsed_host.startswith("dpg-") and not parsed_host.endswith(".render.com")
-        if not is_internal:
-            db_kwargs["ssl"] = _get_postgres_ssl_context()
+        # Try with SSL Context first, then without SSL if rejected
+        ssl_modes = [_get_postgres_ssl_context(), None]
 
-        cand_db = Database(cand_url, **db_kwargs)
-        try:
-            logger.info(f"Connecting to database host: {parsed_host}...")
-            await asyncio.wait_for(cand_db.connect(), timeout=10.0)
-            logger.info(f"Database Connection SUCCESS via host: {parsed_host}")
-            database = cand_db
-            DATABASE_URL = cand_url
-            IS_POSTGRES = cand_is_pg
-            DB_CONNECTION_ERROR = None
-            return True
-        except Exception as e:
-            err_msg = str(e).splitlines()[0] if str(e) else type(e).__name__
-            logger.warning(f"Connection attempt to host {parsed_host} failed: {err_msg}")
-            last_exc = e
+        for ssl_mode in ssl_modes:
+            ssl_desc = "ssl_context" if ssl_mode is not None else "no_ssl"
+            db_kwargs = {
+                "statement_cache_size": 0,
+                "timeout": 15.0,
+                "min_size": 1,
+                "max_size": 3
+            }
+            if ssl_mode is not None:
+                db_kwargs["ssl"] = ssl_mode
+
+            cand_db = Database(cand_url, **db_kwargs)
+            try:
+                logger.info(f"Connecting to database host: {parsed_host} ({ssl_desc})...")
+                await asyncio.wait_for(cand_db.connect(), timeout=10.0)
+                logger.info(f"Database Connection SUCCESS via host: {parsed_host} ({ssl_desc})")
+                database = cand_db
+                DATABASE_URL = cand_url
+                IS_POSTGRES = cand_is_pg
+                DB_CONNECTION_ERROR = None
+                return True
+            except Exception as e:
+                err_msg = str(e).splitlines()[0] if str(e) else type(e).__name__
+                logger.warning(f"Connection attempt to host {parsed_host} ({ssl_desc}) failed: {err_msg}")
+                last_exc = e
 
     if last_exc:
         DB_CONNECTION_ERROR = f"{type(last_exc).__name__}: {str(last_exc)}"
