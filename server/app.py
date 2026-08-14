@@ -386,9 +386,12 @@ async def send_otp_email(to_email: str, name: str, code: str):
         logger.error(f"Error sending OTP email: {str(e)}")
         return False
 
+DB_CONNECTION_ERROR: Optional[str] = None
+
 # 8. STARTUP & SHUTDOWN
 @app.on_event("startup")
 async def startup():
+    global DB_CONNECTION_ERROR
     logger.info("=== DACHAGO STARTUP DIAGNOSTICS ===")
     logger.info(f"Database Driver: {'PostgreSQL (asyncpg)' if IS_POSTGRES else 'SQLite (aiosqlite)'}")
     logger.info(f"Database Configured: {'YES' if RAW_DATABASE_URL else 'NO (Local SQLite fallback)'}")
@@ -408,9 +411,10 @@ async def startup():
     try:
         await asyncio.wait_for(database.connect(), timeout=10.0)
         logger.info("Database Connection: SUCCESS")
+        DB_CONNECTION_ERROR = None
     except Exception as e:
-        err_msg = str(e).splitlines()[0] if str(e) else "Unknown DB error"
-        logger.error(f"Database Connection: FAILED - {type(e).__name__}: {err_msg}")
+        DB_CONNECTION_ERROR = f"{type(e).__name__}: {str(e)}"
+        logger.error(f"Database Connection: FAILED - {DB_CONNECTION_ERROR}")
 
     # Execute versioned SQL migrations
     try:
@@ -532,6 +536,13 @@ async def health_check():
 
 @app.get("/health/db")
 async def health_db_check():
+    if not database.is_connected:
+        return {
+            "status": "unhealthy",
+            "database": "postgresql" if IS_POSTGRES else "sqlite",
+            "connected": False,
+            "error": DB_CONNECTION_ERROR or "DatabaseBackend is not connected"
+        }
     try:
         val = await database.fetch_val("SELECT 1")
         return {
