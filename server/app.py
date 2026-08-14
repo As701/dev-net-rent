@@ -38,7 +38,7 @@ if IS_RENDER_OR_PROD and not RAW_DATABASE_URL:
 
 def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
     """Parse DATABASE_URL environment variable and return (async_url, is_postgres).
-    Ensures asyncpg receives ssl=require parameter for PostgreSQL/Supabase connections.
+    Ensures asyncpg receives correct driver scheme for PostgreSQL.
     Leaves SQLite untouched.
     """
     if not raw_url:
@@ -51,12 +51,16 @@ def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
         parsed = urlparse(url)
+        host = parsed.hostname or ""
+        is_internal_render = host.startswith("dpg-") and not host.endswith(".render.com")
+
         query_params = parse_qs(parsed.query)
 
-        # Force ssl=require for asyncpg if ssl or sslmode is not explicitly 'disable'/'off'
-        ssl_val = query_params.get("ssl", [None])[0] or query_params.get("sslmode", [None])[0]
-        if not ssl_val or ssl_val not in ("disable", "off", "false", "0"):
-            query_params["ssl"] = ["require"]
+        # Force ssl=require only if not explicitly disabled and not Render internal private host
+        if not is_internal_render:
+            ssl_val = query_params.get("ssl", [None])[0] or query_params.get("sslmode", [None])[0]
+            if not ssl_val or ssl_val not in ("disable", "off", "false", "0"):
+                query_params["ssl"] = ["require"]
 
         async_query = urlencode(query_params, doseq=True)
         async_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, async_query, parsed.fragment))
@@ -76,20 +80,26 @@ def _get_postgres_ssl_context():
 DATABASE_URL, IS_POSTGRES = _prepare_db_url(RAW_DATABASE_URL)
 
 if IS_POSTGRES:
-    ssl_context = _get_postgres_ssl_context()
     parsed_host = urlparse(DATABASE_URL).hostname or ""
     parsed_port = urlparse(DATABASE_URL).port or 5432
 
     db_kwargs = {
-        "ssl": ssl_context,
         "min_size": 1,
         "max_size": 3
     }
+
+    # Render internal private database connections (host: dpg-... without .render.com) do NOT use SSL
+    is_internal_render = parsed_host.startswith("dpg-") and not parsed_host.endswith(".render.com")
+
+    if is_internal_render:
+        logger.info("DATABASE: Render Internal Private PostgreSQL detected (no SSL required).")
+    else:
+        logger.info("DATABASE: External Cloud PostgreSQL backend detected. Enforcing SSLContext (CERT_NONE).")
+        db_kwargs["ssl"] = _get_postgres_ssl_context()
+
     if "pooler.supabase.com" in parsed_host or parsed_port == 6543:
         db_kwargs["statement_cache_size"] = 0
         logger.info("DATABASE: PostgreSQL Supavisor pooler detected. Enforcing statement_cache_size=0.")
-    else:
-        logger.info("DATABASE: Render/Cloud PostgreSQL backend detected. Enforcing SSLContext (CERT_NONE).")
 
     database = Database(DATABASE_URL, **db_kwargs)
 else:
