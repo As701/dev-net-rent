@@ -3,7 +3,7 @@
     let userEmail = ''; 
     let timerInterval = null;
 
-    const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api/v1';
+    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
 
     let identityMask = null;
 

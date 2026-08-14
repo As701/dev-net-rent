@@ -142,8 +142,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     window.uploadScreenshot = (id) => {
-        alert("Функция выбора файла для брони #" + id);
-        // Here we would trigger a hidden file input
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*,.pdf';
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch(`${API_URL}/bookings/${id}/screenshot`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (res.ok) {
+                    alert("Скриншот оплаты успешно загружен! Отправлен на проверку модератору.");
+                    fetchBookings();
+                } else {
+                    const err = await res.json();
+                    alert("Ошибка загрузки: " + (err.detail || "Не удалось отправить файл"));
+                }
+            } catch (err) {
+                alert("Ошибка сети при отправке скриншота");
+            }
+        };
+        fileInput.click();
     };
 
     fetchBookings();

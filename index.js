@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api/v1';
+    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
     
     // --- ELEMENTS ---
     const container = document.getElementById('listings-container');

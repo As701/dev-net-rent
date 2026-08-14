@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api';
+        const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
         const response = await fetch(`${API_URL}/listings`);
         const listings = await response.json();
         const item = listings.find(l => String(l.id) === String(listingId));   

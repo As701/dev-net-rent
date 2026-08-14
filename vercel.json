@@ -1,11 +1,4 @@
 {
   "version": 2,
-  "framework": null,
-  "public": true,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/client/"
-    }
-  ]
+  "cleanUrls": true
 }

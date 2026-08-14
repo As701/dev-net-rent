@@ -1,5 +1,5 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const API_URL = window.DachaGoConfig ? window.DachaGoConfig.apiUrl : 'http://localhost:5005/api';
+document.addEventListener('DOMContentLoaded', async () => {
+    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
     
     // --- AUTH GUARD ---
     let currentUser = JSON.parse(localStorage.getItem('dacha_admin_user') || '{}');

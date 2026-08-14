@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function loadConversations() {
-        const API_URL = window.DachaGoConfig?.apiUrl || 'http://localhost:5005/api';
+        const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
         try {
             const res = await fetch(`${API_URL}/messages/conversations/${user.id}`);
             const data = await res.json();

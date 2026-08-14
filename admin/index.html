@@ -29,12 +29,12 @@
         <button id="login-btn">ENTER SYSTEM</button>
     </div>
 
-    <script src="../client/config.js"></script>
+    <script src="../config.js"></script>
     <script>
         document.getElementById('login-btn').onclick = async () => {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('pass').value.trim();
-            const API_URL = window.DachaGoConfig ? window.DachaGoConfig.apiUrl : 'http://localhost:5005/api';
+            const API_URL = window.DachaGoConfig ? window.DachaGoConfig.apiUrl : 'https://dev-net-rent.onrender.com/api/v1';
 
             if (!email || !password) return alert('Fill all fields');
 

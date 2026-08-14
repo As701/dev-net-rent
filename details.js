@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const urlParams = new URLSearchParams(window.location.search);
     const listingId = urlParams.get('id');
-    const API_URL = 'http://localhost:5005/api/v1';
+    const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
 
     if (!listingId) { 
         console.error("No ID found in URL, redirecting...");
