@@ -1,4 +1,5 @@
 import os
+import ssl
 import random
 import jwt
 import bcrypt
@@ -63,17 +64,34 @@ def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
 
     return raw_url, False
 
+def _get_postgres_ssl_context():
+    """Create an explicit SSLContext for PostgreSQL that enforces SSL/TLS negotiation
+    while accepting self-signed/proxy certificates on cloud database providers like Render and Supabase.
+    """
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
 DATABASE_URL, IS_POSTGRES = _prepare_db_url(RAW_DATABASE_URL)
 
 if IS_POSTGRES:
-    logger.info("DATABASE: PostgreSQL backend detected. Enforcing SSL/TLS (ssl='require'), statement_cache_size=0, pool limits (1..3).")
-    database = Database(
-        DATABASE_URL,
-        ssl="require",
-        min_size=1,
-        max_size=3,
-        statement_cache_size=0
-    )
+    ssl_context = _get_postgres_ssl_context()
+    parsed_host = urlparse(DATABASE_URL).hostname or ""
+    parsed_port = urlparse(DATABASE_URL).port or 5432
+
+    db_kwargs = {
+        "ssl": ssl_context,
+        "min_size": 1,
+        "max_size": 3
+    }
+    if "pooler.supabase.com" in parsed_host or parsed_port == 6543:
+        db_kwargs["statement_cache_size"] = 0
+        logger.info("DATABASE: PostgreSQL Supavisor pooler detected. Enforcing statement_cache_size=0.")
+    else:
+        logger.info("DATABASE: Render/Cloud PostgreSQL backend detected. Enforcing SSLContext (CERT_NONE).")
+
+    database = Database(DATABASE_URL, **db_kwargs)
 else:
     logger.info("DATABASE: SQLite backend detected.")
     database = Database(DATABASE_URL)
@@ -377,117 +395,118 @@ async def startup():
         except Exception:
             logger.info("Target DB: URL configured")
 
-    try:
-        await database.connect()
-        logger.info("Database Connection: SUCCESS")
-    except Exception as e:
-        err_msg = str(e).splitlines()[0] if str(e) else "Unknown DB connection error"
-        logger.error(f"Database Connection: FAILED - {type(e).__name__}: {err_msg}")
-        raise e
-
-    # Execute versioned SQL migrations
-    try:
+    async def _initialize_db_and_migrations():
         try:
-            from server.migrations.runner import apply_migrations
-        except ImportError:
-            from migrations.runner import apply_migrations
-        apply_migrations(DATABASE_URL)
-        logger.info("Migration Status: SUCCESS")
-    except Exception as e:
-        err_msg = str(e).splitlines()[0] if str(e) else "Migration notice"
-        logger.warning(f"Migration Status: NOTICE - {type(e).__name__}: {err_msg}")
+            await asyncio.wait_for(database.connect(), timeout=10.0)
+            logger.info("Database Connection: SUCCESS")
+        except asyncio.TimeoutError:
+            logger.error("Database Connection: FAILED - TimeoutError (10s connection timeout)")
+            return
+        except Exception as e:
+            err_msg = str(e).splitlines()[0] if str(e) else "Unknown DB error"
+            logger.error(f"Database Connection: FAILED - {type(e).__name__}: {err_msg}")
+            return
 
-    sync_db_url = DATABASE_URL
-    if IS_POSTGRES:
-        if sync_db_url.startswith("postgresql+asyncpg://"):
-            sync_db_url = sync_db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
-        if "ssl=require" in sync_db_url and "sslmode=" not in sync_db_url:
-            sync_db_url = sync_db_url.replace("ssl=require", "sslmode=require")
-    elif sync_db_url.startswith("sqlite+aiosqlite://"):
-        sync_db_url = sync_db_url.replace("sqlite+aiosqlite://", "sqlite://", 1)
-
-    try:
-        engine = create_engine(sync_db_url)
-        metadata.create_all(engine)
-    except Exception as e:
-        err_msg = str(e).splitlines()[0] if str(e) else "Table creation notice"
-        logger.warning(f"SQLAlchemy Table Verification Notice: {type(e).__name__}: {err_msg}")
-
-    # Soft column migrations for existing tables
-    with engine.connect() as conn:
-        cols_to_ensure = [
-            ("bio", "TEXT"),
-            ("avatar_url", "TEXT"),
-            ("passport_hash", "VARCHAR"),
-            ("is_verified", "BOOLEAN DEFAULT 0"),
-            ("strikes", "INTEGER DEFAULT 0"),
-            ("otp", "VARCHAR"),
-            ("expire", "TIMESTAMP"),
-            ("verified", "BOOLEAN DEFAULT 0"),
-            ("role", "VARCHAR DEFAULT 'user'")
-        ]
-        for col_name, col_type in cols_to_ensure:
+        # Execute versioned SQL migrations
+        try:
             try:
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
-                conn.commit()
-                logger.info(f"Soft migration: added column {col_name} to users")
-            except Exception:
-                pass
+                from server.migrations.runner import apply_migrations
+            except ImportError:
+                from migrations.runner import apply_migrations
+            apply_migrations(DATABASE_URL)
+            logger.info("Migration Status: SUCCESS")
+        except Exception as e:
+            err_msg = str(e).splitlines()[0] if str(e) else "Migration notice"
+            logger.warning(f"Migration Status: NOTICE - {type(e).__name__}: {err_msg}")
 
-        listing_cols = [
-            ("owner_id", "VARCHAR"),
-            ("type", "VARCHAR"),
-            ("category", "VARCHAR"),
-            ("image", "VARCHAR"),
-            ("description", "TEXT"),
-            ("amenities", "TEXT"),
-            ("rules", "TEXT"),
-            ("details", "TEXT"),
-            ("calendar", "TEXT"),
-            ("liveness_url", "VARCHAR"),
-            ("is_bargaining_enabled", "BOOLEAN DEFAULT 0"),
-            ("payment_status", "VARCHAR DEFAULT 'unpaid'"),
-            ("expires_at", "TIMESTAMP"),
-            ("status", "VARCHAR DEFAULT 'pending'")
-        ]
-        for col_name, col_type in listing_cols:
-            try:
-                conn.execute(text(f"ALTER TABLE listings ADD COLUMN {col_name} {col_type}"))
-                conn.commit()
-                logger.info(f"Soft migration: added column {col_name} to listings")
-            except Exception:
-                pass
+        sync_db_url = DATABASE_URL
+        if IS_POSTGRES:
+            if sync_db_url.startswith("postgresql+asyncpg://"):
+                sync_db_url = sync_db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+            if "ssl=require" in sync_db_url and "sslmode=" not in sync_db_url:
+                sync_db_url = sync_db_url.replace("ssl=require", "sslmode=require")
+        elif sync_db_url.startswith("sqlite+aiosqlite://"):
+            sync_db_url = sync_db_url.replace("sqlite+aiosqlite://", "sqlite://", 1)
 
-        booking_cols = [
-            ("user_id", "VARCHAR"),
-            ("listing_id", "VARCHAR"),
-            ("dates", "TEXT"),
-            ("status", "VARCHAR DEFAULT 'pending'"),
-            ("queue_position", "INTEGER DEFAULT 1"),
-            ("screenshot_url", "VARCHAR")
-        ]
-        for col_name, col_type in booking_cols:
-            try:
-                conn.execute(text(f"ALTER TABLE bookings ADD COLUMN {col_name} {col_type}"))
-                conn.commit()
-                logger.info(f"Soft migration: added column {col_name} to bookings")
-            except Exception:
-                pass
+        try:
+            engine = create_engine(sync_db_url)
+            metadata.create_all(engine)
+            with engine.connect() as conn:
+                cols_to_ensure = [
+                    ("bio", "TEXT"),
+                    ("avatar_url", "TEXT"),
+                    ("passport_hash", "VARCHAR"),
+                    ("is_verified", "BOOLEAN DEFAULT 0"),
+                    ("strikes", "INTEGER DEFAULT 0"),
+                    ("otp", "VARCHAR"),
+                    ("expire", "TIMESTAMP"),
+                    ("verified", "BOOLEAN DEFAULT 0"),
+                    ("role", "VARCHAR DEFAULT 'user'")
+                ]
+                for col_name, col_type in cols_to_ensure:
+                    try:
+                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+                        conn.commit()
+                    except Exception:
+                        pass
+                listing_cols = [
+                    ("owner_id", "VARCHAR"),
+                    ("type", "VARCHAR"),
+                    ("category", "VARCHAR"),
+                    ("image", "VARCHAR"),
+                    ("description", "TEXT"),
+                    ("amenities", "TEXT"),
+                    ("rules", "TEXT"),
+                    ("details", "TEXT"),
+                    ("calendar", "TEXT"),
+                    ("liveness_url", "VARCHAR"),
+                    ("is_bargaining_enabled", "BOOLEAN DEFAULT 0"),
+                    ("payment_status", "VARCHAR DEFAULT 'unpaid'"),
+                    ("expires_at", "TIMESTAMP"),
+                    ("status", "VARCHAR DEFAULT 'pending'")
+                ]
+                for col_name, col_type in listing_cols:
+                    try:
+                        conn.execute(text(f"ALTER TABLE listings ADD COLUMN {col_name} {col_type}"))
+                        conn.commit()
+                    except Exception:
+                        pass
 
-        message_cols = [
-            ("sender_id", "VARCHAR"),
-            ("receiver_id", "VARCHAR"),
-            ("content", "TEXT"),
-            ("is_read", "BOOLEAN DEFAULT 0"),
-            ("created_at", "TIMESTAMP")
-        ]
-        for col_name, col_type in message_cols:
-            try:
-                conn.execute(text(f"ALTER TABLE messages ADD COLUMN {col_name} {col_type}"))
-                conn.commit()
-                logger.info(f"Soft migration: added column {col_name} to messages")
-            except Exception:
-                pass
+                booking_cols = [
+                    ("user_id", "VARCHAR"),
+                    ("listing_id", "VARCHAR"),
+                    ("dates", "TEXT"),
+                    ("status", "VARCHAR DEFAULT 'pending'"),
+                    ("queue_position", "INTEGER DEFAULT 1"),
+                    ("screenshot_url", "VARCHAR")
+                ]
+                for col_name, col_type in booking_cols:
+                    try:
+                        conn.execute(text(f"ALTER TABLE bookings ADD COLUMN {col_name} {col_type}"))
+                        conn.commit()
+                    except Exception:
+                        pass
+
+                message_cols = [
+                    ("sender_id", "VARCHAR"),
+                    ("receiver_id", "VARCHAR"),
+                    ("content", "TEXT"),
+                    ("is_read", "BOOLEAN DEFAULT 0"),
+                    ("created_at", "TIMESTAMP")
+                ]
+                for col_name, col_type in message_cols:
+                    try:
+                        conn.execute(text(f"ALTER TABLE messages ADD COLUMN {col_name} {col_type}"))
+                        conn.commit()
+                    except Exception:
+                        pass
+        except Exception as e:
+            err_msg = str(e).splitlines()[0] if str(e) else "Table verification notice"
+            logger.warning(f"SQLAlchemy Table Verification Notice: {type(e).__name__}: {err_msg}")
+
+    # Launch database initialization non-blocking so FastAPI starts web server immediately
+    asyncio.create_task(_initialize_db_and_migrations())
+    logger.info("FastAPI Application Startup Complete. Web server listening on PORT.")
 
 @app.on_event("shutdown")
 async def shutdown():
