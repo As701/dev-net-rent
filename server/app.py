@@ -39,7 +39,7 @@ if IS_RENDER_OR_PROD and not RAW_DATABASE_URL:
 def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
     """Parse DATABASE_URL environment variable and return (async_url, is_postgres).
     Ensures asyncpg receives correct driver scheme for PostgreSQL.
-    Converts external Render DB hostnames to internal private hostnames when running on Render.
+    Strips ssl/sslmode query parameters so databases passes explicit SSLContext object to asyncpg.
     Leaves SQLite untouched.
     """
     if not raw_url:
@@ -48,29 +48,15 @@ def _prepare_db_url(raw_url: Optional[str]) -> Tuple[str, bool]:
 
     if raw_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
         url = raw_url.replace("postgres://", "postgresql://", 1)
-
-        # Normalize external Render database URL to internal private network host when running on Render
-        parsed_raw = urlparse(url)
-        raw_host = parsed_raw.hostname or ""
-        if IS_RENDER_OR_PROD and raw_host.startswith("dpg-") and ".render.com" in raw_host:
-            internal_host = raw_host.split(".")[0]
-            netloc = parsed_raw.netloc.replace(raw_host, internal_host, 1)
-            url = urlunparse((parsed_raw.scheme, netloc, parsed_raw.path, "", "", parsed_raw.fragment))
-
         if not url.startswith("postgresql+asyncpg://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
         parsed = urlparse(url)
-        host = parsed.hostname or ""
-        is_internal_render = host.startswith("dpg-") and not host.endswith(".render.com")
-
         query_params = parse_qs(parsed.query)
 
-        # Force ssl=require only if not explicitly disabled and not Render internal private host
-        if not is_internal_render:
-            ssl_val = query_params.get("ssl", [None])[0] or query_params.get("sslmode", [None])[0]
-            if not ssl_val or ssl_val not in ("disable", "off", "false", "0"):
-                query_params["ssl"] = ["require"]
+        # Strip ssl/sslmode from URL query string so databases uses explicit ssl=SSLContext
+        query_params.pop("ssl", None)
+        query_params.pop("sslmode", None)
 
         async_query = urlencode(query_params, doseq=True)
         async_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, async_query, parsed.fragment))
