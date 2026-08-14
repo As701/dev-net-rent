@@ -213,7 +213,9 @@ messages_table = Table(
     Column("created_at", DateTime, default=datetime.utcnow)
 )
 
-SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "DACHAGO_ULTRA_SECURE_PRODUCTION_KEY_2026")
+# 4. JWT & SECURITY CONFIGURATION
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or os.environ.get("JWT_SECRET") or "DACHAGO_ULTRA_SECURE_PRODUCTION_KEY_2026"
+ALGORITHM = "HS256"
 
 app = FastAPI(title="DachaGo API", version="1.0.0")
 
