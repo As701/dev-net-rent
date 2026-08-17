@@ -25,20 +25,27 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 1. DATABASE CONFIGURATION
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-elif not DATABASE_URL:
+RAW_DATABASE_URL = os.environ.get("DATABASE_URL", "")
+
+if RAW_DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = RAW_DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+elif RAW_DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = RAW_DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif RAW_DATABASE_URL:
+    DATABASE_URL = RAW_DATABASE_URL
+else:
     DATABASE_URL = "sqlite+aiosqlite:///./database.sqlite"
 
-# Configure asyncpg connection pooling and TCP keepalive parameters
+# Configure asyncpg connection pooling and SSL context
 database_options = {}
-if "postgresql" in DATABASE_URL:
+if "postgresql" in DATABASE_URL or "postgres" in DATABASE_URL:
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
     database_options = {
         "min_size": 1,
         "max_size": 10,
-        "ssl": "require",
+        "ssl": ssl_context,
         "command_timeout": 30
     }
 
