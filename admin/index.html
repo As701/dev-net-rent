@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DachaGo - Gateway</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --brand: #2599C8; --dark: #1A1D1E; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--dark); height: 100vh; display: flex; align-items: center; justify-content: center; color: white; overflow: hidden; }
+        
+        .login-box { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); padding: 50px; border-radius: 40px; border: 1px solid rgba(255,255,255,0.1); width: 100%; max-width: 400px; text-align: center; }
+        .logo { font-size: 32px; font-weight: 900; color: var(--brand); margin-bottom: 30px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        
+        input { width: 100%; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); padding: 16px; border-radius: 16px; margin-top: 15px; color: white; font-size: 16px; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--brand); background: rgba(255,255,255,0.1); }
+        
+        button { width: 100%; background: var(--brand); color: white; border: none; padding: 18px; border-radius: 16px; margin-top: 30px; font-weight: 900; font-size: 16px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 30px rgba(37, 153, 200, 0.3); }
+        button:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(37, 153, 200, 0.4); }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <div class="logo"><i class="fas fa-shield-alt"></i>DachaGo</div>
+        <p style="color: #888; font-weight: 600; margin-bottom: 20px;">Control Panel Access</p>
+        <input type="text" id="email" placeholder="Email / Login">
+        <input type="password" id="pass" placeholder="Password">
+        <button id="login-btn">ENTER SYSTEM</button>
+    </div>
+
+    <script src="../client/config.js"></script>
+    <script>
+        document.getElementById('login-btn').onclick = async () => {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('pass').value.trim();
+            const API_URL = window.DachaGoConfig ? window.DachaGoConfig.apiUrl : 'http://localhost:5005/api';
+
+            if (!email || !password) return alert('Fill all fields');
+
+            try {
+                const res = await fetch(`${API_URL}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem('dacha_auth_token', data.token);
+                    localStorage.setItem('dacha_admin_user', JSON.stringify(data.user));
+                    localStorage.setItem('dacha_admin_logged', 'true');
+                    
+                    // УБИРАЕМ ПЕРЕДНИЙ СЛЭШ ДЛЯ ЛОКАЛЬНОГО ОТКРЫТИЯ
+                    let path = data.redirect;
+                    if (path.startsWith('/')) path = path.substring(1);
+                    
+                    window.location.href = path;
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || 'Access Denied');
+                }
+            } catch (e) {
+                alert('Server connection error');
+            }
+        };
+    </script>
+</body>
+</html>

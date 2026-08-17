@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новое объявление - DachaGo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2599C8;
+            --soft-gray: #F7F9FC;
+            --text-dark: #1A1D1E;
+            --text-light: #9BA5B7;
+            --danger-red: #EA5455;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--soft-gray); margin: 0; padding-bottom: 180px; color: var(--text-dark); }
+        .container { padding: 0 20px; }
+
+        /* Map Modal Styles */
+        #map-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+        }
+        #map-modal.active { display: flex; }
+        #map-container { flex: 1; width: 100%; }
+        .map-header { padding: 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; }
+        .map-footer { padding: 20px; background: white; border-top: 1px solid #eee; }
+        .confirm-map-btn { width: 100%; padding: 16px; background: var(--primary-blue); color: white; border: none; border-radius: 18px; font-weight: 800; font-size: 16px; cursor: pointer; }
+        .map-picker-trigger {
+            background: white;
+            border-radius: 22px;
+            padding: 20px;
+            border: 2px dashed #D1D8E0;
+            margin-top: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .map-picker-trigger:hover { border-color: var(--primary-blue); background: #F0F7FF; }
+        .map-picker-trigger i { font-size: 24px; color: var(--text-light); margin-bottom: 8px; display: block; }
+        .map-picker-trigger span { font-size: 12px; font-weight: 700; color: var(--text-dark); display: block; }
+        .map-picker-trigger p { font-size: 10px; color: var(--text-light); margin: 4px 0 0; }
+        .map-picker-trigger.selected { border-style: solid; border-color: var(--primary-blue); background: #F0F7FF; }
+        .map-picker-trigger.selected i { color: var(--primary-blue); }
+
+        .page-header { background: white; padding: 50px 20px 25px; border-radius: 0 0 35px 35px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 15px; }
+        .back-btn { width: 45px; height: 45px; border-radius: 15px; background: var(--soft-gray); display: flex; align-items: center; justify-content: center; color: var(--text-dark); text-decoration: none; }
+        .page-title { font-weight: 800; font-size: 20px; }
+
+        .form-section { margin-top: 25px; }
+        .section-label { font-weight: 800; font-size: 14px; margin-bottom: 12px; display: block; color: var(--text-dark); }
+
+        /* Photo Grid */
+        .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .photo-box { aspect-ratio: 1; background: white; border-radius: 20px; position: relative; border: 1px solid #F0F3F6; overflow: hidden; }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+        .photo-box .remove-photo { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.5); color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; }
+        .add-photo-box { aspect-ratio: 1; background: white; border: 2px dashed #D1D8E0; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-light); cursor: pointer; }
+        .add-photo-box i { font-size: 20px; margin-bottom: 5px; }
+        .add-photo-box span { font-size: 9px; font-weight: 700; }
+
+        /* Inputs & Selects */
+        .input-group { background: white; border-radius: 22px; padding: 15px 20px; border: 1px solid #F0F3F6; margin-bottom: 15px; display: flex; align-items: center; gap: 12px; }
+        .input-group i { color: var(--text-light); font-size: 16px; width: 20px; text-align: center; }
+        .input-group input, .input-group textarea, .input-group select { width: 100%; border: none; outline: none; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-dark); background: transparent; }
+        .input-group select { cursor: pointer; appearance: none; }
+        .input-group textarea { height: 140px; resize: none; }
+
+        /* Type & Categories */
+        .type-select-grid, .category-select-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        .category-select-grid { grid-template-columns: repeat(3, 1fr); }
+        .type-option, .cat-option { background: white; padding: 15px 5px; border-radius: 18px; text-align: center; border: 1px solid #F0F3F6; cursor: pointer; transition: 0.3s; }
+        .type-option.active, .cat-option.active { background: var(--primary-blue); border-color: var(--primary-blue); color: white; }
+        .type-option i, .cat-option i { font-size: 18px; margin-bottom: 6px; display: block; color: var(--text-light); }
+        .type-option.active i, .cat-option.active i { color: white; }
+        .type-option span, .cat-option span { font-size: 11px; font-weight: 700; }
+
+        /* Calendar */
+        .calendar-card { background: white; border-radius: 30px; padding: 20px; border: 1px solid #F0F3F6; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .calendar-day-label { font-size: 9px; font-weight: 800; color: var(--text-light); margin-bottom: 10px; }
+        .calendar-day { aspect-ratio: 1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; cursor: pointer; background: var(--soft-gray); border: 1px solid transparent; }
+        .calendar-day.selected { border-color: var(--primary-blue); box-shadow: 0 0 0 2px var(--primary-blue); }
+        .calendar-day.available { background: #EBF5FF; color: var(--primary-blue); }
+        .calendar-day.unavailable { background: #FFF0F0; color: var(--danger-red); }
+        .calendar-controls { margin-top: 15px; background: var(--soft-gray); padding: 15px; border-radius: 20px; display: none; }
+        .calendar-controls.active { display: block; }
+        .mode-btn-group { display: flex; gap: 8px; margin-bottom: 12px; }
+        .mode-btn { flex: 1; padding: 10px; border-radius: 12px; background: white; color: var(--text-light); border: 1px solid #eee; font-size: 10px; font-weight: 800; cursor: pointer; }
+        #set-price-mode.active { background: var(--primary-blue); color: white; }
+        #set-unavailable-mode.active { background: var(--danger-red); color: white; }
+
+        .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .time-card { background: white; padding: 15px; border-radius: 22px; border: 1px solid #F0F3F6; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .time-card i { width: 35px; height: 35px; background: #EBF5FF; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary-blue); font-size: 14px; }
+        .time-info label { display: block; font-size: 9px; font-weight: 800; color: var(--text-light); text-transform: uppercase; }
+        .time-info input { width: 100%; border: none; outline: none; font-size: 14px; font-weight: 700; color: var(--text-dark); background: transparent; }
+
+        .policy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .policy-option { background: white; padding: 18px 15px; border-radius: 22px; border: 1px solid #F0F3F6; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+        .policy-option i { width: 35px; height: 35px; background: var(--soft-gray); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-light); font-size: 14px; }
+        .policy-option.active { border-color: var(--primary-blue); background: #F0F7FF; }
+        .policy-option.active i { background: var(--primary-blue); color: white; }
+        .policy-info h4 { margin: 0; font-size: 12px; font-weight: 800; }
+        .policy-info p { margin: 2px 0 0 0; font-size: 9px; color: var(--text-light); }
+
+        /* Characteristics */
+        .chars-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .char-input { display: flex; align-items: center; gap: 12px; background: white; border-radius: 22px; padding: 15px 20px; border: 1px solid #F0F3F6; }
+        .char-input i { color: var(--text-light); font-size: 16px; width: 20px; text-align: center; }
+        .char-input input { width: 100%; border: none; outline: none; font-size: 14px; font-weight: 600; color: var(--text-dark); background: transparent; }
+
+        /* Amenities & Rules */
+        .amenities-grid, .criteria-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .amenity-item, .criterion-item { background: white; padding: 15px 5px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; border: 1px solid #F0F3F6; cursor: pointer; position: relative; }
+        .amenity-item i, .criterion-item i { font-size: 20px; color: var(--text-light); }
+        .amenity-item span, .criterion-item span { font-size: 9px; font-weight: 700; color: var(--text-light); }
+        .amenity-item.active, .criterion-item.active { border-color: var(--primary-blue); background: #F0F7FF; color: var(--primary-blue); }
+        .amenity-item.active i, .amenity-item.active span, .criterion-item.active i, .criterion-item.active span { color: var(--primary-blue); }
+        .check-badge { position: absolute; top: -5px; right: -5px; background: var(--primary-blue); color: white; width: 18px; height: 18px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 8px; border: 2px solid white; }
+        .active .check-badge { display: flex; }
+
+        /* Publish Button */
+        .publish-frame { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px 25px 40px; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.05); }
+        .publish-btn { background: var(--primary-blue); color: white; border: none; width: 100%; padding: 18px; border-radius: 20px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; }
+        .publish-btn:disabled { background: #E0E6ED; color: #9BA5B7; cursor: not-allowed; }
+
+        .desc-footer { display: flex; justify-content: space-between; margin-top: -10px; margin-bottom: 20px; padding: 0 10px; font-size: 10px; font-weight: 700; }
+        .desc-error { color: var(--danger-red); }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
+        <div class="page-title">Новое объявление</div>
+    </header>
+
+    <div class="container">
+        <!-- 1. ФОТОГРАФИИ -->
+        <div class="form-section">
+            <span class="section-label">Фотографии (3-20)</span>
+            <div class="photo-grid" id="photo-grid">
+                <div class="add-photo-box" id="add-photo-trigger"><i class="fas fa-camera"></i><span>Добавить</span></div>
+            </div>
+            <input type="file" id="real-file-input" multiple accept="image/*" style="display: none;">
+        </div>
+
+        <!-- 2. НАЗВАНИЕ -->
+        <div class="form-section">
+            <span class="section-label">Название публикации</span>
+            <div class="input-group"><i class="fas fa-pen-nib"></i><input type="text" id="title-input" placeholder="Введите название публикации"></div>
+        </div>
+
+        <!-- 3. ТИП ОБЪЯВЛЕНИЯ -->
+        <div class="form-section">
+            <span class="section-label">Тип объявления</span>
+            <div class="type-select-grid">
+                <div class="type-option active" data-type="rent"><i class="fas fa-calendar-alt"></i><span>Аренда</span></div>
+                <div class="type-option" data-type="sale"><i class="fas fa-tag"></i><span>Продажа</span></div>
+            </div>
+        </div>
+
+        <!-- ЦЕНА ДЛЯ ПРОДАЖИ (скрыта по умолчанию) -->
+        <div class="form-section" id="sale-price-section" style="display: none;">
+            <span class="section-label">Стоимость продажи</span>
+            <div class="input-group">
+                <i class="fas fa-money-bill-wave" style="color: var(--primary-blue);"></i>
+                <input type="text" id="listing-price-input" class="price-input" placeholder="Введите цену">
+                <span style="font-weight: 800; color: var(--text-light); font-size: 12px;">UZS</span>
+            </div>
+        </div>
+
+        <!-- 4. КАЛЕНДАРЬ -->
+        <div id="calendar-section" class="form-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span class="section-label" style="margin-bottom: 0;">Календарь цен и доступности</span>
+                <div style="display: flex; align-items: center; gap: 15px; background: white; padding: 5px 15px; border-radius: 12px; border: 1px solid #F0F3F6;">
+                    <i class="fas fa-chevron-left" id="prev-month" style="cursor: pointer; color: var(--primary-blue); font-size: 12px;"></i>
+                    <span id="current-month-display" style="font-size: 11px; font-weight: 800; color: var(--text-dark); min-width: 80px; text-align: center; text-transform: uppercase;">Апрель 2026</span>
+                    <i class="fas fa-chevron-right" id="next-month" style="cursor: pointer; color: var(--primary-blue); font-size: 12px;"></i>
+                </div>
+            </div>
+            <div class="calendar-card">
+                <div class="calendar-grid" id="calendar-grid"></div>
+                <div class="calendar-controls" id="calendar-controls">
+                    <div class="mode-btn-group">
+                        <button class="mode-btn active" id="set-price-mode">Цена</button>
+                        <button class="mode-btn" id="set-unavailable-mode">Занято</button>
+                    </div>
+                    <div id="price-input-container">
+                        <div class="input-group" style="margin-bottom: 10px; border-radius: 15px; padding: 12px 15px;">
+                            <span style="font-weight: 800; color: var(--text-light); font-size: 10px;">СУМ</span><input type="text" id="calendar-price-input" placeholder="Цена за день">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div class="input-group" style="margin-bottom: 0; border-radius: 15px; padding: 12px 15px;">
+                                <span style="font-weight: 800; color: var(--text-light); font-size: 9px;">МИН. ДНИ</span>
+                                <input type="number" id="calendar-min-stay" value="1" min="1" style="font-size: 12px;">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0; border-radius: 15px; padding: 12px 15px;">
+                                <span style="font-weight: 800; color: var(--text-light); font-size: 9px;">СКИДКА %</span>
+                                <input type="number" id="calendar-discount" value="0" min="0" max="90" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="publish-btn" style="padding: 12px; font-size: 14px;" id="apply-calendar-settings">Применить к выбранным датам</button>
+                </div>
+            </div>
+            <div class="time-grid">
+                <div class="time-card" onclick="document.getElementById('checkin-time').showPicker()">
+                    <i class="fas fa-door-open"></i><div class="time-info"><label>Заезд</label><input type="time" id="checkin-time" value="14:00"></div>
+                </div>
+                <div class="time-card" onclick="document.getElementById('checkout-time').showPicker()">
+                    <i class="fas fa-door-closed"></i><div class="time-info"><label>Выезд</label><input type="time" id="checkout-time" value="11:00"></div>
+                </div>
+            </div>
+            <div class="policy-grid" style="margin-top: 15px;">
+                <div class="policy-option active" data-policy="deposit"><i class="fas fa-percentage"></i><div class="policy-info"><h4>Аванс 10%</h4><p>Бронь за часть</p></div></div>
+                <div class="policy-option" id="bargaining-toggle-btn" style="border-style: dashed;"><i class="fas fa-comments-dollar"></i><div class="policy-info"><h4>Разрешить торг</h4><p>Диапазон -12% / +6%</p></div></div>
+            </div>
+            <div id="bargaining-hint" style="display: none; background: #FFF9E6; padding: 12px 15px; border-radius: 15px; margin-top: 10px; border: 1px solid #FFE58F;">
+                <p style="font-size: 10px; color: #856404; margin: 0; line-height: 1.4;">
+                    <i class="fas fa-info-circle"></i> Клиенты смогут предлагать цену в диапазоне от -12% до +6% от вашей стоимости. Заявки с повышенной стоимостью поднимаются выше в очереди.
+                </p>
+            </div>
+        </div>
+
+        <!-- 5. КАТЕГОРИЯ -->
+        <div class="form-section">
+            <span class="section-label">Категория</span>
+            <div class="category-select-grid">
+                <div class="cat-option" data-category="cottages"><i class="fas fa-warehouse"></i><span>Коттедж</span></div>
+                <div class="cat-option" data-category="villas"><i class="fas fa-hotel"></i><span>Вилла</span></div>
+                <div class="cat-option active" data-category="dachas"><i class="fas fa-tree"></i><span>Дача</span></div>
+            </div>
+        </div>
+
+        <!-- 6. ЛОКАЦИЯ -->
+        <div class="form-section">
+            <span class="section-label">Локация</span>
+            <div class="input-group">
+                <i class="fas fa-map-marked-alt" style="color: var(--primary-blue);"></i>
+                <select id="region-select"><option value="" disabled selected>Выберите область</option></select>
+                <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: auto; color: var(--text-light);"></i>
+            </div>
+            <div class="input-group" id="city-select-group" style="display: none;">
+                <i class="fas fa-city" style="color: var(--primary-blue);"></i>
+                <select id="city-select"><option value="" disabled selected>Выберите город/район</option></select>
+                <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: auto; color: var(--text-light);"></i>
+            </div>
+
+            <!-- New: Map Picker Trigger -->
+            <div class="map-picker-trigger" id="map-picker-btn">
+                <i class="fas fa-map-marker-alt"></i>
+                <span id="map-status-text">Выбрать на карте</span>
+                <p id="map-coords-text">Укажите точное местоположение объекта</p>
+            </div>
+        </div>
+
+        <!-- New: Map Modal -->
+        <div id="map-modal">
+            <div class="map-header">
+                <div class="back-btn" id="close-map"><i class="fas fa-times"></i></div>
+                <div class="page-title">Выберите локацию</div>
+                <div style="width: 45px;"></div>
+            </div>
+            <div id="map-container"></div>
+            <div class="map-footer">
+                <button class="confirm-map-btn" id="confirm-location">Подтвердить выбор</button>
+            </div>
+        </div>
+
+        <!-- 7. ХАРАКТЕРИСТИКИ -->
+        <div class="form-section">
+            <span class="section-label">Характеристики</span>
+            <div class="chars-grid">
+                <div class="char-input"><i class="fas fa-bed"></i><input type="number" id="bedrooms-input" placeholder="Спальни"></div>
+                <div class="char-input"><i class="fas fa-bath"></i><input type="number" id="bathrooms-input" placeholder="Санузлы"></div>
+                <div class="char-input"><i class="fas fa-door-open"></i><input type="number" id="rooms-input" placeholder="Комнаты"></div>
+                <div class="char-input"><i class="fas fa-vector-square"></i><input type="number" id="area-input" placeholder="м²"></div>
+                <div class="char-input" style="grid-column: span 2;"><i class="fas fa-users"></i><input type="number" id="capacity-input" placeholder="Сколько человек поместится?"></div>
+            </div>
+        </div>
+
+        <!-- 8. УДОБСТВА -->
+        <div class="form-section">
+            <span class="section-label">Удобства</span>
+            <div class="amenities-grid">
+                <div class="amenity-item" data-id="pool"><i class="fas fa-swimming-pool"></i><span>Бассейн</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="sauna"><i class="fas fa-hot-tub"></i><span>Сауна/Баня</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="wifi"><i class="fas fa-wifi"></i><span>Wi-Fi</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="ac"><i class="fas fa-snowflake"></i><span>Конд-р</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="tv"><i class="fas fa-tv"></i><span>ТВ</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="kitchen"><i class="fas fa-utensils"></i><span>Кухня</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="wash"><i class="fas fa-soap"></i><span>Стирка</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="grill"><i class="fas fa-fire"></i><span>Мангал</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="billiards"><i class="fas fa-circle"></i><span>Бильярд</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="tennis"><i class="fas fa-table-tennis-paddle-ball"></i><span>Теннис</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="karaoke"><i class="fas fa-microphone"></i><span>Караоке</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="ps"><i class="fas fa-gamepad"></i><span>Play Station</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="bowling"><i class="fas fa-bowling-ball"></i><span>Боулинг</span><div class="check-badge">✓</div></div>
+                <div class="amenity-item" data-id="cinema"><i class="fas fa-film"></i><span>Кино</span><div class="check-badge">✓</div></div>
+            </div>
+        </div>
+
+        <!-- 9. ПРАВИЛА -->
+        <div class="form-section" id="rules-section">
+            <span class="section-label">Правила</span>
+            <div class="criteria-grid">
+                <div class="criterion-item" data-id="no_corp"><i class="fas fa-users-slash"></i><span>Без корп.</span><div class="check-badge">✓</div></div>
+                <div class="criterion-item" data-id="no_alc"><i class="fas fa-wine-glass-alt"></i><span>Без алк.</span><div class="check-badge">✓</div></div>
+                <div class="criterion-item" data-id="family"><i class="fas fa-heart-broken"></i><span>Только семьям</span><div class="check-badge">✓</div></div>
+            </div>
+        </div>
+
+        <!-- 10. ОПИСАНИЕ -->
+        <div class="form-section">
+            <span class="section-label">Описание публикации</span>
+            <div class="input-group" style="padding: 10px 20px;"><textarea id="desc-input" placeholder="Расскажите об объекте подробнее..."></textarea></div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:800; padding:0 10px;">
+                <div id="desc-err" style="color:var(--danger-red)">Нужно еще 50 симв.</div>
+                <div id="desc-count">0 / 50 000</div>
+            </div>
+        </div>
+
+        <!-- 11. БЕЗОПАСНОСТЬ И ВЕРИФИКАЦИЯ (ANTI-FRAUD) -->
+        <div class="form-section" id="verification-section">
+            <span class="section-label">Верификация владельца <span style="color: var(--primary-blue); margin-left: 5px;"><i class="fas fa-shield-alt"></i></span></span>
+            <div class="calendar-card" style="padding: 20px;">
+                <p style="font-size: 11px; color: var(--text-light); margin-bottom: 15px; line-height: 1.4;">Для защиты от мошенничества мы требуем подтверждение личности. Данные зашифрованы и не передаются третьим лицам.</p>
+                
+                <div class="policy-grid" style="margin-bottom: 20px;">
+                    <div class="input-group" style="margin-bottom: 0; padding: 12px 15px;">
+                        <span style="font-weight: 800; color: var(--text-light); font-size: 9px;">СЕРИЯ</span>
+                        <input type="text" id="passport-series" placeholder="AA" maxlength="2" style="text-transform: uppercase;">
+                    </div>
+                    <div class="input-group" style="margin-bottom: 0; padding: 12px 15px;">
+                        <span style="font-weight: 800; color: var(--text-light); font-size: 9px;">НОМЕР</span>
+                        <input type="text" id="passport-number" placeholder="1234567" maxlength="7">
+                    </div>
+                </div>
+
+                <div id="liveness-check-container" style="text-align: center; background: var(--soft-gray); border-radius: 20px; padding: 20px; border: 1px dashed #D1D8E0;">
+                    <div id="camera-preview-wrap" style="width: 150px; height: 150px; border-radius: 50%; overflow: hidden; margin: 0 auto 15px; background: #eee; border: 4px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none;">
+                        <video id="liveness-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                        <canvas id="liveness-canvas" style="display: none;"></canvas>
+                    </div>
+                    
+                    <div id="liveness-placeholder">
+                        <i class="fas fa-user-shield" style="font-size: 40px; color: var(--text-light); margin-bottom: 10px; display: block;"></i>
+                        <span style="font-size: 12px; font-weight: 800; display: block;">Liveness Check</span>
+                        <p style="font-size: 10px; color: var(--text-light); margin: 5px 0 15px;">Сделайте селфи с жестом для подтверждения, что вы — живой человек</p>
+                    </div>
+
+                    <button type="button" class="mode-btn" id="start-liveness-btn" style="background: white; border: 1.5px solid var(--primary-blue); color: var(--primary-blue); font-size: 11px; width: 100%; padding: 12px;">Начать проверку камеры</button>
+                    
+                    <div id="liveness-instructions" style="display: none; margin-top: 15px;">
+                        <div style="background: var(--primary-blue); color: white; padding: 8px 15px; border-radius: 12px; font-size: 11px; font-weight: 800;" id="gesture-instruction">Покажите жест: 🖖🏻 (Vulkan)</div>
+                        <button type="button" class="publish-btn" id="capture-liveness-btn" style="margin-top: 10px; padding: 12px; font-size: 13px;">Сделать снимок</button>
+                    </div>
+
+                    <div id="liveness-success" style="display: none; margin-top: 10px;">
+                        <span style="color: var(--success-green); font-size: 12px; font-weight: 800;"><i class="fas fa-check-circle"></i> Проверка пройдена</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="publish-frame">
+        <div id="payment-timer-wrap" style="display: none; text-align: center; margin-bottom: 15px;">
+            <div style="font-size: 10px; font-weight: 800; color: var(--text-light); margin-bottom: 5px;">ВРЕМЯ НА ОПЛАТУ РАЗМЕЩЕНИЯ:</div>
+            <div id="payment-timer" style="font-size: 18px; font-weight: 900; color: var(--danger-red);">10:00</div>
+        </div>
+        <button class="publish-btn" id="publish-btn" disabled>Опубликовать</button>
+    </div>
+
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
+    <script src="config.js"></script>
+    <script src="create.js"></script>
+</body>
+</html>

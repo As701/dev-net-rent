@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">     
+    <title>Детали объявления - DachaGo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Swiper CSS for slider -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+    <style>
+        :root {
+            --brand-blue: #2599C8;
+            --soft-gray: #F7F9FC;
+            --text-dark: #1A1D1E;
+            --text-light: #9BA5B7;
+            --white: #FFFFFF;
+            --danger: #EA5455;
+            --success: #28C76F;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--white); margin: 0; padding-bottom: 120px; color: var(--text-dark); -webkit-font-smoothing: antialiased; }
+
+        /* GALLERY SLIDER */
+        .swiper { width: 100%; height: 380px; }
+        .swiper-slide img { width: 100%; height: 100%; object-fit: cover; }
+        .header-actions { position: absolute; top: 50px; left: 20px; right: 20px; display: flex; justify-content: space-between; z-index: 100; }
+        .circle-btn { width: 45px; height: 45px; border-radius: 50%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; color: var(--text-dark); border: none; cursor: pointer; backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+
+        .listing-content { background: var(--white); border-radius: 40px 40px 0 0; margin-top: -35px; position: relative; padding: 30px 24px; z-index: 10; }
+
+        /* STATUS & OWNER */
+        .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; background: #E8F5E9; color: var(--success); font-size: 11px; font-weight: 800; margin-bottom: 15px; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+        
+        .listing-title { font-weight: 900; font-size: 24px; margin: 0 0 10px; line-height: 1.2; }
+        .listing-loc { color: var(--text-light); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 25px; }
+
+        .owner-block { display: flex; align-items: center; gap: 15px; padding: 20px; background: var(--soft-gray); border-radius: 25px; margin-bottom: 30px; }
+        .owner-avatar { width: 55px; height: 55px; border-radius: 18px; object-fit: cover; }
+        .owner-info { flex: 1; }
+        .owner-name { font-weight: 800; font-size: 16px; display: block; margin-bottom: 2px; }
+        .kyc-badge { color: var(--brand-blue); font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+
+        /* SECTIONS */
+        .section-title { font-weight: 900; font-size: 18px; margin-bottom: 18px; display: block; }
+        .description-text { color: #555; font-size: 14px; line-height: 1.6; margin-bottom: 30px; }
+
+        /* CHARACTERISTICS GRID */
+        .chars-row { display: flex; gap: 10px; margin-bottom: 30px; overflow-x: auto; scrollbar-width: none; }
+        .chars-row::-webkit-scrollbar { display: none; }
+        .char-pill { background: var(--soft-gray); padding: 12px 18px; border-radius: 15px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .char-pill i { color: var(--brand-blue); font-size: 14px; }
+        .char-pill span { font-weight: 800; font-size: 13px; }
+
+        /* AMENITIES STATIC GRID */
+        .amenities-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }
+        .amenity-box { display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0.3; text-align: center; }
+        .amenity-box.active { opacity: 1; }
+        .amenity-icon { width: 50px; height: 50px; border-radius: 16px; background: var(--soft-gray); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text-dark); transition: 0.3s; }
+        .amenity-box.active .amenity-icon { background: #EBF5FF; color: var(--brand-blue); }
+        .amenity-label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--text-light); }
+        .amenity-box.active .amenity-label { color: var(--text-dark); }
+
+        /* HOUSE RULES */
+        .rules-flex { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 35px; }
+        .rule-badge { background: #FFF0F0; color: #FF3B30; padding: 8px 14px; border-radius: 12px; font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+
+        /* CALENDAR CUSTOMER VIEW */
+        .calendar-card { background: white; border: 1.5px solid #F0F3F6; border-radius: 25px; padding: 20px; margin-bottom: 30px; }
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .cal-month { font-weight: 900; font-size: 16px; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .cal-day-label { text-align: center; font-size: 10px; font-weight: 800; color: var(--text-light); padding: 10px 0; }
+        .cal-day { height: 45px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; position: relative; }
+        .cal-day.busy { background: #FFF5F5; color: #FFCDD2; cursor: not-allowed; text-decoration: line-through; }
+        .cal-day.selected { background: var(--brand-blue); color: white; box-shadow: 0 4px 10px rgba(37, 153, 200, 0.3); }
+        .cal-day .day-price { font-size: 7px; margin-top: 2px; opacity: 0.8; }
+
+        /* FLOATING BOTTOM BAR */
+        .floating-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 20px 24px 40px; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 15px; z-index: 1000; }
+        .bargain-btn { width: 64px; height: 64px; border-radius: 22px; border: 2px solid var(--brand-blue); background: white; color: var(--brand-blue); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: 0.3s; }
+        .book-btn { flex: 1; height: 64px; border-radius: 22px; background: var(--brand-blue); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; cursor: pointer; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.3); border: none; }
+        .book-btn span { font-size: 10px; opacity: 0.8; font-weight: 700; margin-top: 2px; }
+
+        /* BARGAIN MODAL */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); z-index: 2000; display: none; }
+        .bargain-modal { position: fixed; bottom: -100%; left: 0; right: 0; background: white; border-radius: 40px 40px 0 0; z-index: 2100; padding: 35px 24px 50px; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bargain-modal.active { bottom: 0; }
+        .modal-handle { width: 40px; height: 5px; background: #E2E8F0; border-radius: 10px; margin: 0 auto 30px; }
+        
+        .price-slider-wrap { margin: 40px 0; text-align: center; }
+        .proposed-price { font-size: 32px; font-weight: 900; color: var(--brand-blue); margin-bottom: 10px; }
+        .price-diff { font-size: 14px; font-weight: 800; color: var(--success); }
+        .price-diff.negative { color: var(--danger); }
+        
+        input[type=range] { width: 100%; margin: 20px 0; accent-color: var(--brand-blue); }
+
+        #loading-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div id="loading-screen"><i class="fas fa-circle-notch fa-spin" style="font-size: 30px; color: var(--brand-blue);"></i></div>
+
+    <div class="header-actions">
+        <button class="circle-btn" onclick="history.back()"><i class="fas fa-chevron-left"></i></button>
+        <button class="circle-btn" id="fav-btn"><i class="far fa-heart"></i></button>
+    </div>
+
+    <!-- SWIPER GALLERY -->
+    <div class="swiper">
+        <div class="swiper-wrapper" id="slider-wrapper">
+            <!-- Slides injected by JS -->
+        </div>
+        <div class="swiper-pagination"></div>
+    </div>
+
+    <main class="listing-content">
+        <div class="status-pill"><div class="status-dot"></div> АКТИВНО</div>
+        
+        <h1 class="listing-title" id="title">...</h1>
+        <div class="listing-loc" id="location">
+            <i class="fas fa-map-marker-alt" style="color: var(--brand-blue);"></i> <span>...</span>
+        </div>
+
+        <!-- OWNER -->
+        <div class="owner-block">
+            <img src="" id="owner-avatar" class="owner-avatar">
+            <div class="owner-info">
+                <span class="owner-name" id="owner-name">...</span>
+                <div class="kyc-badge"><i class="fas fa-shield-alt"></i> Профиль проверен DachaGo</div>
+            </div>
+        </div>
+
+        <!-- CHARS -->
+        <div class="chars-row" id="chars-row">
+            <!-- Pills like beds, baths, area -->
+        </div>
+
+        <span class="section-title">Описание</span>
+        <p class="description-text" id="description">...</p>
+
+        <span class="section-title">Удобства</span>
+        <div class="amenities-grid" id="amenities-grid">
+            <!-- 14 icons from create.html logic -->
+        </div>
+
+        <span class="section-title">Правила дома</span>
+        <div class="rules-flex" id="rules-flex">
+            <!-- Rule badges -->
+        </div>
+
+        <span class="section-title">Календарь доступности</span>
+        <div class="calendar-card">
+            <div class="cal-header">
+                <button class="circle-btn" style="width:32px; height:32px;" id="prev-month"><i class="fas fa-chevron-left" style="font-size:10px;"></i></button>
+                <div class="cal-month" id="cal-month-label">Июнь 2026</div>
+                <button class="circle-btn" style="width:32px; height:32px;" id="next-month"><i class="fas fa-chevron-right" style="font-size:10px;"></i></button>
+            </div>
+            <div class="cal-grid" id="calendar-grid">
+                <!-- Day labels and days -->
+            </div>
+        </div>
+    </main>
+
+    <!-- FLOATING BAR -->
+    <div class="floating-bar">
+        <button class="bargain-btn" id="open-bargain-btn"><i class="fas fa-hand-holding-usd"></i></button>
+        <button class="book-btn" id="book-now-btn">
+            Забронировать
+            <span id="price-summary">Выберите даты</span>
+        </button>
+    </div>
+
+    <!-- BARGAIN MODAL -->
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="bargain-modal" id="bargain-modal">
+        <div class="modal-handle"></div>
+        <span class="section-title" style="text-align: center; margin-bottom: 10px;">Предложите свою цену</span>
+        <p style="text-align: center; font-size: 12px; color: var(--text-light); margin-bottom: 30px;">Владелец рассмотрит вашу заявку быстрее, если цена будет выше базовой.</p>
+        
+        <div class="price-slider-wrap">
+            <div class="proposed-price" id="proposed-price-label">0 сум</div>
+            <div class="price-diff" id="price-diff-label">0%</div>
+            <input type="range" id="bargain-slider" min="-12" max="6" value="0" step="1">
+            <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; color: var(--text-light); padding: 0 10px;">
+                <span>-12%</span>
+                <span>БАЗОВАЯ</span>
+                <span>+6%</span>
+            </div>
+        </div>
+
+        <button class="book-btn" style="width: 100%;" id="send-bargain-offer">Отправить предложение</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+    <script src="config.js"></script>
+    <script src="details.js"></script>
+</body>
+</html>

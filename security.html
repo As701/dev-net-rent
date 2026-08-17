@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Безопасность - DachaGo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-blue: #2599C8;
+            --soft-gray: #F7F9FC;
+            --text-dark: #1A1D1E;
+            --text-light: #9BA5B7;
+            --white: #FFFFFF;
+            --danger: #FF3B30;
+            --success: #34C759;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--soft-gray); margin: 0; padding-bottom: 50px; color: var(--text-dark); }
+        
+        .header { background: var(--white); padding: 60px 24px 20px; border-radius: 0 0 35px 35px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
+        .back-btn { width: 45px; height: 45px; background: var(--soft-gray); border-radius: 15px; display: flex; align-items: center; justify-content: center; color: var(--text-dark); text-decoration: none; }
+        .title { font-weight: 900; font-size: 20px; margin: 0; }
+
+        .content { padding: 25px 20px; }
+        
+        .section-card { background: var(--white); border-radius: 25px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #F0F3F6; }
+        .section-title { font-weight: 800; font-size: 14px; text-transform: uppercase; color: var(--text-light); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .section-title i { color: var(--brand-blue); }
+
+        /* SESSIONS */
+        .session-item { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #F8F9FA; }
+        .session-item:last-child { border-bottom: none; }
+        .session-info { display: flex; flex-direction: column; gap: 4px; }
+        .session-device { font-weight: 800; font-size: 14px; }
+        .session-meta { font-size: 11px; color: var(--text-light); }
+        .session-current { background: #E8F5E9; color: #2E7D32; padding: 2px 8px; border-radius: 6px; font-size: 9px; font-weight: 900; margin-left: 8px; }
+        .terminate-btn { color: var(--danger); font-size: 12px; font-weight: 800; cursor: pointer; border: none; background: transparent; }
+
+        /* FORMS */
+        .input-group { background: var(--soft-gray); border-radius: 18px; padding: 12px 15px; margin-bottom: 15px; border: 1.5px solid transparent; transition: 0.3s; }
+        .input-group:focus-within { border-color: var(--brand-blue); background: var(--white); }
+        .input-group label { display: block; font-size: 9px; font-weight: 800; color: var(--text-light); text-transform: uppercase; margin-bottom: 4px; }
+        .input-group input { width: 100%; border: none; background: transparent; outline: none; font-weight: 700; font-size: 15px; }
+
+        .btn-primary { background: var(--brand-blue); color: white; border: none; padding: 16px; border-radius: 18px; font-weight: 800; font-size: 14px; width: 100%; cursor: pointer; transition: 0.3s; }
+        .btn-primary:active { transform: scale(0.98); }
+
+        .danger-zone { border: 1px solid #FFCDD2; background: #FFF5F5; border-radius: 20px; padding: 20px; text-align: center; }
+        .danger-title { color: var(--danger); font-weight: 900; font-size: 14px; margin-bottom: 10px; }
+        .danger-text { font-size: 11px; color: #777; line-height: 1.4; margin-bottom: 15px; }
+        .btn-danger-outline { background: white; color: var(--danger); border: 1.5px solid var(--danger); padding: 12px; border-radius: 15px; font-weight: 800; font-size: 12px; width: 100%; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="profile.html" class="back-btn"><i class="fas fa-chevron-left"></i></a>
+        <h1 class="title">Безопасность</h1>
+        <div style="width: 45px;"></div>
+    </header>
+
+    <main class="content">
+        <!-- 1. ACTIVE SESSIONS -->
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-desktop"></i> Активные сессии</div>
+            <div id="sessions-list">
+                <!-- Loading state -->
+                <p style="font-size: 12px; color: var(--text-light); text-align: center;">Загрузка устройств...</p>
+            </div>
+        </div>
+
+        <!-- 2. CHANGE PASSWORD -->
+        <div class="section-card">
+            <div class="section-title"><i class="fas fa-key"></i> Смена пароля</div>
+            <div class="input-group">
+                <label>Текущий пароль</label>
+                <input type="password" id="old-password" placeholder="••••••••">
+            </div>
+            <div class="input-group">
+                <label>Новый пароль</label>
+                <input type="password" id="new-password" placeholder="Мин. 8 символов">
+            </div>
+            <button class="btn-primary" id="change-pass-btn">Обновить пароль</button>
+        </div>
+
+        <!-- 3. DATA PRIVACY -->
+        <div class="danger-zone">
+            <div class="danger-title">Приватность данных</div>
+            <p class="danger-text">Вы можете отозвать свои паспортные данные. Это приведет к потере статуса верификации и невозможности публиковать объявления.</p>
+            <button class="btn-danger-outline" id="delete-passport-btn">Удалить данные паспорта</button>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="security.js"></script>
+</body>
+</html>

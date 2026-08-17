@@ -1,0 +1,205 @@
+:root {
+    --primary-blue: #0056b3;
+    --light-blue: #007bff;
+    --accent-blue: #e3f2fd;
+    --text-color: #333;
+    --white: #ffffff;
+    --bg-light: #f8f9fa;
+    --border-color: #dee2e6;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-color);
+    background-color: var(--white);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Navbar */
+.navbar {
+    background-color: var(--white);
+    border-bottom: 1px solid var(--border-color);
+    padding: 15px 0;
+}
+
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--primary-blue);
+}
+
+.logo span {
+    color: var(--light-blue);
+}
+
+nav a {
+    text-decoration: none;
+    color: var(--text-color);
+    margin: 0 15px;
+    font-weight: 500;
+}
+
+nav a:hover {
+    color: var(--primary-blue);
+}
+
+.btn-primary {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Hero Section */
+.hero {
+    background: linear-gradient(135deg, var(--accent-blue) 0%, #ffffff 100%);
+    padding: 100px 0;
+    text-align: center;
+}
+
+.profile-hero {
+    background: linear-gradient(135deg, var(--white) 0%, var(--accent-blue) 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.hero h2 {
+    font-size: 36px;
+    margin-bottom: 30px;
+    color: var(--primary-blue);
+}
+
+.search-bar {
+    background: var(--white);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    display: inline-flex;
+    gap: 15px;
+}
+
+.search-bar input, .search-bar select {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    min-width: 200px;
+}
+
+.btn-search {
+    background-color: var(--light-blue);
+    color: var(--white);
+    border: none;
+    padding: 12px 30px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Listings */
+.listings {
+    padding: 60px 0;
+}
+
+.listings h3 {
+    margin-bottom: 30px;
+    font-size: 24px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-img {
+    height: 200px;
+    background-color: var(--accent-blue);
+}
+
+.card-content {
+    padding: 20px;
+}
+
+.price {
+    color: var(--primary-blue);
+    font-size: 18px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.tag {
+    display: inline-block;
+    background: var(--accent-blue);
+    color: var(--primary-blue);
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+/* Realtor Styles */
+.realtors {
+    padding: 60px 0;
+    background-color: var(--bg-light);
+}
+
+.realtor-card {
+    background: var(--white);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.realtor-img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    background-size: cover;
+    background-position: center;
+}
+
+.btn-subscribe {
+    background-color: var(--white);
+    color: var(--primary-blue);
+    border: 1px solid var(--primary-blue);
+    padding: 8px 15px;
+    border-radius: 5px;
+    margin-top: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-subscribe:hover {
+    background-color: var(--primary-blue);
+    color: var(--white);
+}

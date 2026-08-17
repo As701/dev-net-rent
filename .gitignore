@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.env
+.env*.local
+.env.local
+.env.production
+*.sqlite
+*.db
+*.exe
+*.zip
+*.rar
+.next/
+.vercel
+

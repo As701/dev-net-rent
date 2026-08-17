@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта дач - DachaGo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+    <style>
+        :root { 
+            --brand-blue: #2599C8; 
+            --soft-gray: #F7F9FC; 
+            --text-dark: #1A1D1E; 
+            --text-light: #9BA5B7; 
+            --white: #FFFFFF; 
+            --warning: #FFCC00;
+        }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; overflow: hidden; background: #eee; }
+        #map { width: 100%; height: 100%; }
+        
+        /* TOP CONTROLS */
+        .top-controls { position: absolute; top: 50px; left: 20px; right: 20px; z-index: 100; display: flex; gap: 10px; }
+        .back-btn { background: white; width: 50px; height: 50px; border-radius: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); cursor: pointer; text-decoration: none; color: var(--text-dark); transition: 0.3s; border: none; }
+        .search-bar { flex: 1; background: white; border-radius: 18px; padding: 0 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .search-bar input { border: none; outline: none; width: 100%; padding: 15px 0; font-weight: 700; font-family: inherit; font-size: 14px; }
+
+        /* CUSTOM PRICE MARKER */
+        .price-marker {
+            background: white;
+            border: 1.5px solid var(--brand-blue);
+            border-radius: 12px;
+            padding: 5px 12px;
+            white-space: nowrap;
+            font-weight: 900;
+            font-size: 12px;
+            color: var(--text-dark);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            position: relative;
+            transform: translate(-50%, -100%);
+            margin-top: -10px;
+        }
+        .price-marker::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid var(--brand-blue);
+        }
+        .price-marker.active { background: var(--brand-blue); color: white; border-color: white; z-index: 1000; }
+        .price-marker.active::after { border-top-color: white; }
+
+        /* BOTTOM SHEET (PREVIEW CARD) */
+        #preview-sheet { 
+            position: fixed; 
+            bottom: -200px; 
+            left: 0; right: 0; 
+            background: white; 
+            border-radius: 35px 35px 0 0; 
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1); 
+            z-index: 2000; 
+            padding: 20px 24px 40px; 
+            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+            display: flex; 
+            gap: 15px; 
+            cursor: pointer;
+        }
+        #preview-sheet.active { bottom: 100px; }
+        .prev-img { width: 100px; height: 100px; border-radius: 20px; object-fit: cover; background: #eee; }
+        .prev-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .prev-title { font-weight: 900; font-size: 16px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .prev-stats { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; color: var(--text-light); margin-bottom: 8px; }
+        .prev-rating { color: var(--warning); display: flex; align-items: center; gap: 3px; }
+        .prev-price { font-weight: 900; font-size: 18px; color: var(--brand-blue); }
+        .prev-price span { font-size: 10px; opacity: 0.7; }
+
+        /* BOTTOM NAV */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 15px 24px 35px; display: flex; justify-content: space-between; align-items: center; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.05); z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #D1D8E0; cursor: pointer; text-decoration: none; transition: 0.3s; }
+        .nav-item.active { color: var(--brand-blue); }
+        .nav-item i { font-size: 22px; }
+        .nav-item span { font-size: 10px; font-weight: 900; text-transform: uppercase; }
+        
+        .nav-create { position: relative; margin-top: -65px; }
+        .create-btn { background: var(--brand-blue); width: 74px; height: 74px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 26px; box-shadow: 0 10px 25px rgba(37, 153, 200, 0.4); border: 6px solid var(--white); cursor: pointer; transition: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="top-controls">
+        <button class="back-btn" onclick="history.back()"><i class="fas fa-chevron-left"></i></button>
+        <div class="search-bar"><i class="fas fa-search" style="color: var(--brand-blue);"></i><input type="text" id="suggest" placeholder="Куда поедем?"></div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- PREVIEW SHEET -->
+    <div id="preview-sheet">
+        <img id="prev-img" src="" class="prev-img">
+        <div class="prev-info">
+            <div id="prev-title" class="prev-title">...</div>
+            <div class="prev-stats">
+                <div class="prev-rating"><i class="fas fa-star"></i> <span>4.8</span></div>
+                <div>•</div>
+                <div><i class="fas fa-users"></i> <span id="prev-cap">0</span> чел.</div>
+            </div>
+            <div id="prev-price" class="prev-price">0 <span>сум/сутки</span></div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="map.html" class="nav-item active"><i class="fas fa-map-marked-alt"></i><span>Карта</span></a>
+        <a href="index.html" class="nav-item"><i class="fas fa-th-large"></i><span>Главная</span></a>
+        <div class="nav-create"><a href="create.html" class="create-btn"><i class="fas fa-plus"></i></a></div>
+        <a href="messages.html" class="nav-item"><i class="fas fa-comment-dots"></i><span>Чаты</span></a>
+        <a href="profile.html" class="nav-item"><i class="fas fa-user-circle"></i><span>Профиль</span></a>
+    </nav>
+
+    <script src="config.js"></script>
+    <script>
+        const API_URL = window.DachaGoConfig?.apiUrl || 'https://dev-net-rent.onrender.com/api/v1';
+        let currentListingId = null;
+
+        ymaps.ready(init);
+
+        function init() {
+            const myMap = new ymaps.Map("map", { center: [41.311081, 69.240562], zoom: 12, controls: [] });
+            const sheet = document.getElementById('preview-sheet');
+
+            // Custom Layout for Price Marker
+            const PriceLayout = ymaps.templateLayoutFactory.createClass(
+                '<div class="price-marker {% if properties.active %}active{% endif %}">' +
+                '$[properties.priceText] $[properties.bargainIcon]' +
+                '</div>'
+            );
+
+            fetch(`${API_URL}/listings`)
+                .then(res => res.json())
+                .then(listings => {
+                    listings.forEach(item => {
+                        const coords = item.coords ? (typeof item.coords === 'string' ? JSON.parse(item.coords) : item.coords) : null;
+                        if (!coords) return;
+
+                        const priceMillion = (item.price / 1000000).toFixed(1);
+                        const priceText = priceMillion >= 1 ? `${priceMillion} млн` : `${(item.price/1000).toFixed(0)}к`;
+                        const bargainIcon = item.is_bargaining_enabled ? '🔥' : '';
+
+                        const placemark = new ymaps.Placemark(coords, {
+                            priceText: priceText,
+                            bargainIcon: bargainIcon
+                        }, {
+                            iconLayout: PriceLayout,
+                            iconShape: { type: 'Rectangle', coordinates: [[-40, -40], [40, 0]] }
+                        });
+
+                        placemark.events.add('click', () => {
+                            // Update sheet
+                            document.getElementById('prev-img').src = item.image || 'https://via.placeholder.com/100';
+                            document.getElementById('prev-title').innerText = item.title;
+                            const details = typeof item.details === 'string' ? JSON.parse(item.details) : item.details;
+                            document.getElementById('prev-cap').innerText = details?.capacity || 0;
+                            document.getElementById('prev-price').innerHTML = `${item.price.toLocaleString()} <span>сум/сутки</span>`;
+                            
+                            sheet.classList.add('active');
+                            currentListingId = item.id;
+                        });
+
+                        myMap.geoObjects.add(placemark);
+                    });
+                });
+
+            sheet.onclick = () => {
+                if (currentListingId) window.location.href = `details.html?id=${currentListingId}`;
+            };
+
+            myMap.events.add('click', () => sheet.classList.remove('active'));
+            new ymaps.SuggestView('suggest');
+        }
+    </script>
+</body>
+</html>

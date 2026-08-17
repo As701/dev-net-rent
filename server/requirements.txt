@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pydantic
+bcrypt
+PyJWT
+python-multipart
+resend
+sqlalchemy
+databases[postgresql]
+asyncpg
+psycopg2-binary
+aiosqlite
+supabase
